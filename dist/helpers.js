@@ -1,7 +1,13 @@
+import { existsSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { InputFile } from "grammy";
 import { MENU_CAPTION } from "./texts.js";
 import { mainMenu } from "./keyboards.js";
 import { isAdmin, isMentor } from "./notify.js";
-const lastBotMessage = new Map();
+const assetsDir = fileURLToPath(new URL("../assets/", import.meta.url));
+const lastBotMessages = new Map();
+const bannerFileIds = new Map();
 function chatIdOf(ctx) {
     return ctx.chat?.id ?? null;
 }
@@ -10,33 +16,65 @@ export async function deletePrevious(ctx) {
     const chatId = chatIdOf(ctx);
     if (!chatId)
         return;
-    const messageId = lastBotMessage.get(chatId);
-    if (!messageId)
+    const ids = lastBotMessages.get(chatId);
+    if (!ids || ids.length === 0)
         return;
-    lastBotMessage.delete(chatId);
-    try {
-        await ctx.api.deleteMessage(chatId, messageId);
-    }
-    catch {
-        // Сообщение старше 48 часов или уже удалено — не критично.
+    lastBotMessages.delete(chatId);
+    for (const id of ids) {
+        try {
+            await ctx.api.deleteMessage(chatId, id);
+        }
+        catch {
+            // Сообщение старше 48 часов или уже удалено — не критично.
+        }
     }
 }
 function track(ctx, messageId) {
     const chatId = chatIdOf(ctx);
-    if (chatId)
-        lastBotMessage.set(chatId, messageId);
+    if (!chatId)
+        return;
+    const ids = lastBotMessages.get(chatId) ?? [];
+    ids.push(messageId);
+    lastBotMessages.set(chatId, ids);
 }
-/** Текстовый экран: удаляет предыдущий экран бота и отправляет новый. */
+/** Текстовый экран: сначала отправляет новый, затем удаляет предыдущий. */
 export async function sendScreen(ctx, text, options) {
-    await deletePrevious(ctx);
     const message = await ctx.reply(text, options);
+    await deletePrevious(ctx);
     track(ctx, message.message_id);
 }
 /**
- * Экран раздела. Отправляется текстом: у сообщений с фото Telegram
- * рисует кнопки полупрозрачными и на всю ширину картинки.
+ * Экран раздела: баннер отдельным фото, текст с кнопками — отдельным
+ * сообщением. Клавиатура под фото рисуется полупрозрачной и на всю
+ * ширину картинки, поэтому кнопки живут на текстовом сообщении.
  */
-export async function sendSection(ctx, _screen, text, keyboard) {
+export async function sendSection(ctx, screen, text, keyboard) {
+    const file = join(assetsDir, `banner-${screen}.png`);
+    if (text.length <= 1024 && existsSync(file)) {
+        const cached = bannerFileIds.get(screen);
+        let photoId = null;
+        let fileId = null;
+        try {
+            const photo = await ctx.replyWithPhoto(cached ?? new InputFile(file));
+            photoId = photo.message_id;
+            fileId = photo.photo?.at(-1)?.file_id ?? null;
+        }
+        catch {
+            photoId = null;
+        }
+        if (photoId) {
+            if (fileId)
+                bannerFileIds.set(screen, fileId);
+            const message = await ctx.reply(text, {
+                parse_mode: "HTML",
+                reply_markup: keyboard,
+            });
+            await deletePrevious(ctx);
+            track(ctx, photoId);
+            track(ctx, message.message_id);
+            return;
+        }
+    }
     await sendScreen(ctx, text, {
         parse_mode: "HTML",
         reply_markup: keyboard,

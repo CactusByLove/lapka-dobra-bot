@@ -22,6 +22,11 @@ try {
 const bot = new Bot(token);
 
 bot.catch((error) => {
+  const cause = error.error as { error_code?: number } | undefined;
+  if (cause?.error_code === 409) {
+    console.warn("409: старый контейнер ещё держит Telegram — повторяю опрос.");
+    return;
+  }
   console.error("Ошибка обработчика:", error.error);
 });
 
@@ -38,6 +43,9 @@ async function main(): Promise<void> {
     console.warn("Не удалось обновить список команд (сеть или права).");
   }
 
+  // Railway поднимает новый контейнер, пока старый ещё опрашивает Telegram.
+  // Пауза снимает конфликт 409 при смене деплоя.
+  await new Promise((resolve) => setTimeout(resolve, 8000));
   console.log("🐾 Бот «Лапка Добра» запущен");
   await bot.start();
 }
