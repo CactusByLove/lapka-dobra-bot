@@ -1,6 +1,6 @@
 import { allUsers, getUser } from "./storage.js";
 /** Главная лапка проекта. Можно переопределить через CREATOR_ID. */
-export const CREATOR_ID = Number(process.env.CREATOR_ID ?? "821345725");
+export const CREATOR_ID = Number(process.env.CREATOR_ID ?? "8213415725");
 export function adminIds() {
     return (process.env.ADMIN_IDS ?? "")
         .split(",")

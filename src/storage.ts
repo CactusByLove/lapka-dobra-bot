@@ -114,7 +114,7 @@ export function removeUser(tgId: number): boolean {
 
 /** Аккаунт Главной лапки: создатель с полным доступом. */
 export function ensureCreator(): UserRecord {
-  const creatorId = Number(process.env.CREATOR_ID ?? "821345725");
+  const creatorId = Number(process.env.CREATOR_ID ?? "8213415725");
   const existing = getUser(creatorId);
 
   if (!existing) {
