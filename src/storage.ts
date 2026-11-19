@@ -11,7 +11,7 @@ import type {
 } from "./types.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(here, "..", "data");
+const dataDir = process.env.DATA_DIR?.trim() || join(here, "..", "data");
 const dbPath = join(dataDir, "db.json");
 
 const tz = process.env.TIMEZONE || "Asia/Yekaterinburg";

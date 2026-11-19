@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { WEEKLY_PAW_LIMIT, levelForPaws } from "./levels.js";
 const here = dirname(fileURLToPath(import.meta.url));
-const dataDir = join(here, "..", "data");
+const dataDir = process.env.DATA_DIR?.trim() || join(here, "..", "data");
 const dbPath = join(dataDir, "db.json");
 const tz = process.env.TIMEZONE || "Asia/Yekaterinburg";
 /** Дата в формате YYYY-MM-DD в часовом поясе проекта */
