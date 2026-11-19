@@ -11,7 +11,7 @@ import {
   usersNavKeyboard,
 } from "./keyboards.js";
 import { IDEA_STATUS_LABEL } from "./levels.js";
-import { clearKeyboard } from "./helpers.js";
+import { clearKeyboard, deletePrevious, sendScreen } from "./helpers.js";
 import { isAdmin, isCreator, isStaff, notifyVolunteers } from "./notify.js";
 import { applicationText, approvedKeyboard } from "./registration.js";
 import { ideaCard } from "./ideas.js";
@@ -90,10 +90,10 @@ function usersPage(page: number) {
 export function registerAdmin(bot: Bot): void {
   bot.command("admin", async (ctx) => {
     if (!ctx.from || !isAdmin(ctx.from.id)) {
-      await ctx.reply("Эта команда доступна координаторам проекта.");
+      await sendScreen(ctx, "Эта команда доступна координаторам проекта.");
       return;
     }
-    await ctx.reply(statsText(ctx.from?.id), {
+    await sendScreen(ctx, statsText(ctx.from?.id), {
       parse_mode: "HTML",
       reply_markup: adminKeyboard(),
     });
@@ -102,7 +102,7 @@ export function registerAdmin(bot: Bot): void {
   bot.callbackQuery("admin:menu", async (ctx) => {
     if (!(await requireAdmin(ctx))) return;
     await ctx.answerCallbackQuery();
-    await ctx.reply(statsText(ctx.from?.id), {
+    await sendScreen(ctx, statsText(ctx.from?.id), {
       parse_mode: "HTML",
       reply_markup: adminKeyboard(),
     });
@@ -111,7 +111,7 @@ export function registerAdmin(bot: Bot): void {
   bot.callbackQuery("admin:stats", async (ctx) => {
     if (!(await requireAdmin(ctx))) return;
     await ctx.answerCallbackQuery();
-    await ctx.reply(statsText(ctx.from?.id), {
+    await sendScreen(ctx, statsText(ctx.from?.id), {
       parse_mode: "HTML",
       reply_markup: adminKeyboard(),
     });
@@ -122,11 +122,12 @@ export function registerAdmin(bot: Bot): void {
     await ctx.answerCallbackQuery();
     const pending = allUsers().filter((user) => user.status === "pending");
     if (pending.length === 0) {
-      await ctx.reply("Новых заявок нет — всё разобрано 🐾", {
+      await sendScreen(ctx, "Новых заявок нет — всё разобрано 🐾", {
         reply_markup: adminKeyboard(),
       });
       return;
     }
+    await deletePrevious(ctx);
     for (const user of pending) {
       await ctx.reply(applicationText(user), {
         parse_mode: "HTML",
@@ -140,9 +141,10 @@ export function registerAdmin(bot: Bot): void {
     await ctx.answerCallbackQuery();
     const ideas = listIdeas().filter((idea) => idea.status === "review");
     if (ideas.length === 0) {
-      await ctx.reply("Идей на разборе нет 🐾", { reply_markup: adminKeyboard() });
+      await sendScreen(ctx, "Идей на разборе нет 🐾", { reply_markup: adminKeyboard() });
       return;
     }
+    await deletePrevious(ctx);
     for (const idea of ideas) {
       await ctx.reply(ideaCard(idea), {
         parse_mode: "HTML",
@@ -156,11 +158,12 @@ export function registerAdmin(bot: Bot): void {
     await ctx.answerCallbackQuery();
     const requests = pendingPawRequests();
     if (requests.length === 0) {
-      await ctx.reply("Начислений на проверке нет 🐾", {
+      await sendScreen(ctx, "Начислений на проверке нет 🐾", {
         reply_markup: adminKeyboard(),
       });
       return;
     }
+    await deletePrevious(ctx);
     for (const request of requests) {
       await ctx.reply(
         `🐾 <b>${escapeHtml(request.userName)}</b>: +${request.amount}\n${escapeHtml(request.reason)}`,
@@ -173,7 +176,7 @@ export function registerAdmin(bot: Bot): void {
     if (!(await requireAdmin(ctx))) return;
     await ctx.answerCallbackQuery();
     const data = usersPage(Number(ctx.match[1] ?? 0));
-    await ctx.reply(
+    await sendScreen(ctx, 
       `👥 <b>Пользователи</b>\nВсего: ${data.total} · страница ${data.page + 1}/${data.pages}`,
       {
         parse_mode: "HTML",
@@ -181,7 +184,7 @@ export function registerAdmin(bot: Bot): void {
       },
     );
     if (data.users.length === 0) {
-      await ctx.reply("Пока ни одного пользователя.");
+      await sendScreen(ctx, "Пока ни одного пользователя.");
       return;
     }
     for (const user of data.users) {
@@ -207,7 +210,7 @@ export function registerAdmin(bot: Bot): void {
       return;
     }
     await ctx.answerCallbackQuery();
-    await ctx.reply(adminUserDetails(user), {
+    await sendScreen(ctx, adminUserDetails(user), {
       parse_mode: "HTML",
       reply_markup: userCardKeyboard(
         user.tgId,
@@ -239,7 +242,7 @@ export function registerAdmin(bot: Bot): void {
     updateUser(tgId, { blocked });
     await ctx.answerCallbackQuery(blocked ? "Заблокирован" : "Разблокирован");
     await clearKeyboard(ctx);
-    await ctx.reply(
+    await sendScreen(ctx, 
       `${blocked ? "🚫" : "✅"} <b>${escapeHtml(user.nickname)}</b> ${
         blocked ? "заблокирован(а)" : "разблокирован(а)"
       }.`,
@@ -266,7 +269,7 @@ export function registerAdmin(bot: Bot): void {
       return;
     }
     await ctx.answerCallbackQuery();
-    await ctx.reply(
+    await sendScreen(ctx, 
       `🗑 Удалить <b>${escapeHtml(user.nickname)}</b>?\n\nПрофиль, лапки и заявки исчезнут. Это необратимо.`,
       { parse_mode: "HTML", reply_markup: deleteUserKeyboard(tgId) },
     );
@@ -293,7 +296,7 @@ export function registerAdmin(bot: Bot): void {
     removeUser(tgId);
     await ctx.answerCallbackQuery("Удалён");
     await clearKeyboard(ctx);
-    await ctx.reply(
+    await sendScreen(ctx, 
       `Пользователь <b>${escapeHtml(user.nickname)}</b> удалён.`,
       { parse_mode: "HTML" },
     );
@@ -330,7 +333,7 @@ export function registerAdmin(bot: Bot): void {
     if (action === "approve") {
       updateUser(tgId, { status: "approved" });
       const award = awardPaws(tgId, 10, "Входной практикум");
-      await ctx.reply(
+      await sendScreen(ctx, 
         `✅ <b>${escapeHtml(user.name)}</b> принят(а) в команду. Начислено: +${award.granted} 🐾`,
         { parse_mode: "HTML" },
       );
@@ -345,7 +348,7 @@ export function registerAdmin(bot: Bot): void {
 
     if (action === "reject") {
       updateUser(tgId, { status: "rejected" });
-      await ctx.reply(`❌ Заявка ${escapeHtml(user.name)} отклонена.`);
+      await sendScreen(ctx, `❌ Заявка ${escapeHtml(user.name)} отклонена.`);
       await ctx.api
         .sendMessage(
           tgId,
@@ -357,7 +360,7 @@ export function registerAdmin(bot: Bot): void {
     }
 
     updateUser(tgId, { status: "need_rework" });
-    await ctx.reply(
+    await sendScreen(ctx, 
       `🔄 По заявке ${escapeHtml(user.name)} запрошена доработка.`,
     );
     await ctx.api
@@ -408,7 +411,7 @@ export function registerAdmin(bot: Bot): void {
     }
 
     const label = IDEA_STATUS_LABEL[next] ?? next;
-    await ctx.reply(
+    await sendScreen(ctx, 
       `💡 «${escapeHtml(idea.title)}» → <b>${label}</b>.${awardLine}`,
       { parse_mode: "HTML" },
     );
@@ -458,7 +461,7 @@ export function registerAdmin(bot: Bot): void {
       decidePawRequest(id, "rejected");
       await ctx.answerCallbackQuery("Отклонено");
       await clearKeyboard(ctx);
-      await ctx.reply(
+      await sendScreen(ctx, 
         `❌ Отклонено: ${escapeHtml(request.userName)} — ${escapeHtml(request.reason)}.`,
       );
       return;
@@ -476,7 +479,7 @@ export function registerAdmin(bot: Bot): void {
     decidePawRequest(id, "approved");
     await ctx.answerCallbackQuery("Подтверждено");
     await clearKeyboard(ctx);
-    await ctx.reply(
+    await sendScreen(ctx, 
       `✅ ${escapeHtml(request.userName)}: +${award.granted} 🐾 (${escapeHtml(request.reason)}).`,
     );
     await ctx.api

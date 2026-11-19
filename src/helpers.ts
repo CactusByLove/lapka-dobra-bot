@@ -1,12 +1,7 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { InputFile, type Context, type InlineKeyboard } from "grammy";
+import type { Context, InlineKeyboard } from "grammy";
 import { MENU_CAPTION } from "./texts.js";
 import { mainMenu } from "./keyboards.js";
 import { isAdmin, isMentor } from "./notify.js";
-
-const assetsDir = fileURLToPath(new URL("../assets/", import.meta.url));
 
 export type Screen =
   | "main"
@@ -21,13 +16,13 @@ export type Screen =
   | "registration";
 
 const lastBotMessage = new Map<number, number>();
-const bannerFileIds = new Map<Screen, string>();
 
 function chatIdOf(ctx: Context): number | null {
   return ctx.chat?.id ?? null;
 }
 
-async function deletePrevious(ctx: Context): Promise<void> {
+/** Удаляет предыдущий экран бота в этом чате. */
+export async function deletePrevious(ctx: Context): Promise<void> {
   const chatId = chatIdOf(ctx);
   if (!chatId) return;
   const messageId = lastBotMessage.get(chatId);
@@ -56,55 +51,16 @@ export async function sendScreen(
   track(ctx, message.message_id);
 }
 
-async function sendBanner(
-  ctx: Context,
-  photo: string | InputFile,
-  caption: string,
-  keyboard?: InlineKeyboard,
-): Promise<void> {
-  await deletePrevious(ctx);
-  const message = await ctx.replyWithPhoto(photo, {
-    caption,
-    parse_mode: "HTML",
-    reply_markup: keyboard,
-  });
-  track(ctx, message.message_id);
-}
-
 /**
- * Экран с баннером раздела. Если готового баннера нет или подпись
- * длиннее лимита Telegram — отправляет обычный текст.
+ * Экран раздела. Отправляется текстом: у сообщений с фото Telegram
+ * рисует кнопки полупрозрачными и на всю ширину картинки.
  */
 export async function sendSection(
   ctx: Context,
-  screen: Screen,
+  _screen: Screen,
   text: string,
   keyboard?: InlineKeyboard,
 ): Promise<void> {
-  const file = join(assetsDir, `banner-${screen}.png`);
-
-  if (text.length <= 1024 && existsSync(file)) {
-    const cached = bannerFileIds.get(screen);
-    if (cached) {
-      await sendBanner(ctx, cached, text, keyboard);
-      return;
-    }
-    try {
-      await deletePrevious(ctx);
-      const message = await ctx.replyWithPhoto(new InputFile(file), {
-        caption: text,
-        parse_mode: "HTML",
-        reply_markup: keyboard,
-      });
-      track(ctx, message.message_id);
-      const fileId = message.photo?.at(-1)?.file_id;
-      if (fileId) bannerFileIds.set(screen, fileId);
-      return;
-    } catch {
-      // Если фото не принято — отправим текстом ниже.
-    }
-  }
-
   await sendScreen(ctx, text, {
     parse_mode: "HTML",
     reply_markup: keyboard,
@@ -121,7 +77,7 @@ export async function deleteUserMessage(ctx: Context): Promise<void> {
   }
 }
 
-/** Отправляет «баннер + кнопки» — главное меню бота. */
+/** Отправляет «баннер с кнопками» — главное меню бота. */
 export async function sendMenu(ctx: Context): Promise<void> {
   const admin = ctx.from ? isAdmin(ctx.from.id) : false;
   const mentor = ctx.from ? isMentor(ctx.from.id) : false;
