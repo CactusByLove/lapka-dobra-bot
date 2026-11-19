@@ -44,12 +44,30 @@ export const DIRECTIONS = [
     { key: "unknown", label: "Ещё не знаю — помогите выбрать", emoji: "🧭" },
 ];
 export const ROLE_LABEL = {
+    creator: "Главная лапка",
+    coordinator: "Координатор",
     volunteer: "Волонтёр",
     author: "Автор идеи",
     mentor: "Наставник",
 };
+/** Чем больше число, тем выше статус в иерархии проекта. */
+export const ROLE_RANK = {
+    creator: 100,
+    coordinator: 80,
+    mentor: 60,
+    volunteer: 40,
+    author: 30,
+};
+export const ROLE_EMOJI = {
+    creator: "👑",
+    coordinator: "🛡",
+    mentor: "🦸",
+    volunteer: "🐾",
+    author: "💡",
+};
 export const IDEA_STATUS_LABEL = {
-    review: "на разборе",
+    review: "на модерации",
+    published: "опубликована",
     team: "команда собрана",
     running: "реализуется",
     done: "реализовано",

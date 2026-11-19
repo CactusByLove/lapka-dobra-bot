@@ -53,13 +53,33 @@ export const DIRECTIONS = [
 ] as const;
 
 export const ROLE_LABEL: Record<Role, string> = {
+  creator: "Главная лапка",
+  coordinator: "Координатор",
   volunteer: "Волонтёр",
   author: "Автор идеи",
   mentor: "Наставник",
 };
 
+/** Чем больше число, тем выше статус в иерархии проекта. */
+export const ROLE_RANK: Record<Role, number> = {
+  creator: 100,
+  coordinator: 80,
+  mentor: 60,
+  volunteer: 40,
+  author: 30,
+};
+
+export const ROLE_EMOJI: Record<Role, string> = {
+  creator: "👑",
+  coordinator: "🛡",
+  mentor: "🦸",
+  volunteer: "🐾",
+  author: "💡",
+};
+
 export const IDEA_STATUS_LABEL: Record<string, string> = {
-  review: "на разборе",
+  review: "на модерации",
+  published: "опубликована",
   team: "команда собрана",
   running: "реализуется",
   done: "реализовано",

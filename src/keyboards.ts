@@ -9,7 +9,7 @@ export const CALLBACKS = {
   DIRECTIONS: "menu:directions",
   DAILY: "menu:daily",
   PROFILE: "menu:profile",
-  MERCH: "menu:merch",
+  MENTOR: "mentor:menu",
   DEALS: "menu:deals",
   BANK: "menu:bank",
   SAFETY: "menu:safety",
@@ -19,7 +19,7 @@ export const CALLBACKS = {
 } as const;
 
 /** Главное меню — оно же «банер с кнопками» */
-export function mainMenu(isAdmin = false): InlineKeyboard {
+export function mainMenu(isAdmin = false, isMentor = false): InlineKeyboard {
   const kb = new InlineKeyboard()
     .text("🐾 Регистрация в команду", CALLBACKS.REG_START)
     .row()
@@ -33,13 +33,12 @@ export function mainMenu(isAdmin = false): InlineKeyboard {
     .text("🎯 Лапка дня", CALLBACKS.DAILY)
     .row()
     .text("📚 Как это работает", CALLBACKS.HOW)
-    .text("🛍 Мерч", CALLBACKS.MERCH)
-    .row()
     .text("🛡 Правила и безопасность", CALLBACKS.SAFETY)
     .row()
     .text("✉️ Связаться", CALLBACKS.CONTACT);
 
   if (isAdmin) kb.row().text("🛠 Админка", CALLBACKS.ADMIN);
+  if (isMentor) kb.row().text("🦸 Наставнику", CALLBACKS.MENTOR);
   return kb;
 }
 
@@ -99,6 +98,12 @@ export function applicationReviewKeyboard(tgId: number): InlineKeyboard {
     .text("❌ Отклонить", `app:reject:${tgId}`);
 }
 
+export function ideaModerationKeyboard(id: string): InlineKeyboard {
+  return new InlineKeyboard()
+    .text("✅ Опубликовать", `idea:st:${id}:published`)
+    .text("❌ Отклонить", `idea:st:${id}:rejected`);
+}
+
 export function ideaReviewKeyboard(id: string): InlineKeyboard {
   return new InlineKeyboard()
     .text("👥 В команду", `idea:st:${id}:team`)
@@ -126,19 +131,57 @@ export function adminKeyboard(): InlineKeyboard {
     .text("📊 Сводка", "admin:stats")
     .row()
     .text("📥 Заявки", "admin:apps")
-    .text("💡 Идеи", "admin:ideas")
+    .text("👥 Пользователи", "admin:users")
     .row()
-    .text("🐾 Начисления на проверке", "admin:paws")
+    .text("💡 Идеи", "admin:ideas")
+    .text("🐾 Начисления", "admin:paws")
     .row()
     .text("⬅️ В меню", CALLBACKS.MAIN);
 }
 
+export function usersNavKeyboard(page: number, pages: number): InlineKeyboard {
+  const kb = new InlineKeyboard();
+  if (page > 0) kb.text("◀️ Назад", `admin:users:${page - 1}`);
+  if (page < pages - 1) kb.text("Вперёд ▶️", `admin:users:${page + 1}`);
+  kb.row().text("⬅️ В админку", "admin:menu");
+  return kb;
+}
+
+export function userCardKeyboard(
+  tgId: number,
+  blocked: boolean,
+  canManage = true,
+): InlineKeyboard {
+  const kb = new InlineKeyboard().text("👤 Профиль", `user:view:${tgId}`).row();
+  if (canManage) {
+    if (blocked) kb.text("✅ Разблокировать", `user:unblock:${tgId}`);
+    else kb.text("🚫 Заблокировать", `user:block:${tgId}`);
+    kb.text("🗑 Удалить", `user:del:${tgId}`).row();
+  }
+  kb.text("⬅️ К списку", "admin:users");
+  return kb;
+}
+
+export function deleteUserKeyboard(tgId: number): InlineKeyboard {
+  return new InlineKeyboard()
+    .text("🗑 Да, удалить", `user:delok:${tgId}`)
+    .text("Отмена", "admin:users")
+    .row()
+    .text("⬅️ В админку", "admin:menu");
+}
+
 export function contactKeyboard(): InlineKeyboard {
   const kb = new InlineKeyboard();
-  const contact = process.env.CONTACT_URL || "https://t.me/lapka_dobra_coord";
-  kb.url("✉️ Написать координатору", contact).row();
-  kb.url("🌐 Сайт проекта", process.env.SITE_URL || "https://lapka-dobra.ru").row();
-  kb.url("⏱ Добро.ру", process.env.DOBRO_URL || "https://dobro.ru").row();
+  const vk = process.env.VK_URL || "https://vk.ru/akindpaw";
+  kb.url("💬 Группа ВКонтакте", vk).row();
   kb.text("⬅️ В меню", CALLBACKS.MAIN);
   return kb;
+}
+
+export function mentorKeyboard(): InlineKeyboard {
+  return new InlineKeyboard()
+    .text("📥 Заявки", "mentor:apps")
+    .text("🐾 Лапки на проверке", "mentor:paws")
+    .row()
+    .text("⬅️ В меню", CALLBACKS.MAIN);
 }

@@ -1,10 +1,16 @@
-import { PAW_RATES, levelForPaws, nextLevel, IDEA_STATUS_LABEL, ROLE_LABEL } from "./levels.js";
+import {
+  PAW_RATES,
+  levelForPaws,
+  nextLevel,
+  IDEA_STATUS_LABEL,
+  ROLE_EMOJI,
+  ROLE_LABEL,
+} from "./levels.js";
 import type { IdeaRecord, UserRecord } from "./types.js";
 
-export const SITE_URL = process.env.SITE_URL || "https://lapka-dobra.ru";
-export const DOBRO_URL = process.env.DOBRO_URL || "https://dobro.ru";
-export const CONTACT_URL =
-  process.env.CONTACT_URL || "https://t.me/lapka_dobra_coord";
+export const VK_URL = process.env.VK_URL || "https://vk.ru/akindpaw";
+export const CHAT_INVITE_URL =
+  process.env.CHAT_INVITE_URL || "https://t.me/+q2NACub1UvU1Yjgy";
 
 export const MENU_CAPTION = `🐾 <b>Лапка Добра</b> — волонтёрский конструктор.
 
@@ -44,17 +50,6 @@ export const DIRECTIONS_TEXT = `🧭 <b>Направления</b>
 
 Направление выбирают после первого дела — спокойно и без спешки.`;
 
-export const MERCH_TEXT = `🛍 <b>Мерч: две экономики</b>
-
-<b>За лапки</b> — награды участников:
-стикерпак 50 · значок «Лапка» 100 · блокнот 150 · кепка 300 · шоппер 400 · худи 800.
-
-Значок «Наставник» 250 и «Лидер» 300 — <b>только за лапки и по уровню</b>, не продаются.
-
-<b>За рубли</b> — сувениры для родителей, горожан и партнёров: от 150 ₽. Доход идёт на устойчивость проекта.
-
-Лапки ↔ рубли не конвертируются.`;
-
 export const SAFETY_TEXT = `🛡 <b>Правила и безопасность</b>
 
 • 14–17 лет — только с согласия родителей. Без него заявка не активируется.
@@ -68,11 +63,22 @@ export const SAFETY_TEXT = `🛡 <b>Правила и безопасность</
 
 export const CONTACT_TEXT = `✉️ <b>Связаться</b>
 
-Координатор: ${CONTACT_URL}
-Сайт проекта: ${SITE_URL}
-Учёт часов: ${DOBRO_URL}
+Наша группа ВКонтакте: ${VK_URL}
 
-Отвечаем в течение дня. Заявки и идеи разбираем до 3 дней.`;
+Там анонсы дел, фото и новости проекта. Отвечаем в течение дня, заявки и идеи разбираем до 3 дней.`;
+
+export function approvalText(user: UserRecord, granted: number): string {
+  return `🎉 <b>Ты в команде «Лапка Добра»!</b>
+
+${escapeHtml(user.nickname)}, твоя заявка одобрена. Мы рады, что ты с нами.
+
+<b>Что дальше:</b>
+• зайди в общий чат команды — там знакомство и расписание;
+• первое дело — 2–3 часа вместе с наставником;
+• в «Моих лапках» уже <b>+${granted} 🐾</b> за входной практикум.
+
+Добро начинается с маленького шага 🐾`;
+}
 
 export function profileText(user: UserRecord): string {
   const level = levelForPaws(user.paws);
@@ -87,7 +93,15 @@ export function profileText(user: UserRecord): string {
           ? "отклонена"
           : "нужна доработка";
 
-  return `🏅 <b>${user.name}</b> · ${ROLE_LABEL[user.role]} · ${user.age} лет
+  const heading =
+    user.role === "creator"
+      ? `👑 <b>${user.nickname}</b> · Главная лапка · создатель проекта`
+      : `🏅 <b>${user.nickname}</b> · ${ROLE_LABEL[user.role]} · ${user.age} лет`;
+
+  const nameLine =
+    user.nickname === user.name ? "" : `\n<b>Имя:</b> ${escapeHtml(user.name)}`;
+
+  return `${heading}${nameLine}
 
 <b>Уровень:</b> ${level.name}
 <b>Лапки:</b> ${user.paws} 🐾
@@ -96,6 +110,43 @@ ${upcoming ? `<b>До «${upcoming.name}»:</b> ${remaining} лапок` : "<b>�
 <b>Серия:</b> 🔥 ${user.streak} дн.
 <b>Заявка:</b> ${statusLabel}
 <b>Направление:</b> ${user.direction}`;
+}
+
+export function adminUserCard(user: UserRecord): string {
+  const statusLabel =
+    user.status === "approved"
+      ? "в команде ✅"
+      : user.status === "pending"
+        ? "на проверке ⏳"
+        : user.status === "rejected"
+          ? "отклонена"
+          : "нужна доработка";
+  const roleLine =
+    user.role === "creator"
+      ? "👑 Главная лапка · создатель"
+      : `${ROLE_EMOJI[user.role]} ${ROLE_LABEL[user.role]} · ${user.age} лет`;
+
+  return `👤 <b>${escapeHtml(user.nickname)}</b>${
+    user.username ? ` (@${escapeHtml(user.username)})` : ""
+  }
+🏷 Имя: ${escapeHtml(user.name)}
+${roleLine}
+🧭 ${escapeHtml(user.direction)}
+📌 ${statusLabel}${user.blocked ? " · 🚫 заблокирован(а)" : ""}
+🐾 ${user.paws} · 🔥 ${user.streak} дн.
+🆔 <code>${user.tgId}</code>`;
+}
+
+export function adminUserDetails(user: UserRecord): string {
+  const created = new Date(user.createdAt).toLocaleDateString("ru-RU", {
+    timeZone: process.env.TIMEZONE || "Asia/Yekaterinburg",
+  });
+  return `${adminUserCard(user)}
+
+📅 В проекте с: ${created}
+🕒 Последняя активность: ${user.lastActivityDate ?? "—"}
+🎯 Лапка дня: ${user.lastDailyDate ?? "—"}
+🏅 Неделя: ${user.pawsThisWeek}/${100}`;
 }
 
 export function pawRatesText(): string {

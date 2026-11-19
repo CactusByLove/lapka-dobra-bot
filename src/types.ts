@@ -1,18 +1,26 @@
-export type Role = "volunteer" | "author" | "mentor";
+export type Role = "creator" | "coordinator" | "volunteer" | "author" | "mentor";
 export type AppStatus = "pending" | "approved" | "rejected" | "need_rework";
-export type IdeaStatus = "review" | "team" | "running" | "done" | "rejected";
+export type IdeaStatus =
+  | "review"
+  | "published"
+  | "team"
+  | "running"
+  | "done"
+  | "rejected";
 export type PawRequestStatus = "pending" | "approved" | "rejected";
 
 export interface UserRecord {
   tgId: number;
   username: string | null;
   name: string;
+  nickname: string;
   age: number;
   role: Role;
   direction: string;
   parentConsent: boolean;
   parentConsentFileId: string | null;
   status: AppStatus;
+  blocked: boolean;
   paws: number;
   /** ISO-дата начала недели, к которой относится pawsThisWeek */
   pawsWeekStart: string;

@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Лапка Добра — описание бота (вариант)</title>
+<style>
+  :root {
+    --bg: #07111c;
+    --line: #1d2c3b;
+    --text: #e8f1fb;
+    --muted: #8fa6bc;
+    --accent: #2ea6ff;
+    --gold: #ffd77a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(1100px 650px at 18% -10%, #12314f 0%, var(--bg) 55%);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    display: flex;
+    gap: 34px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 36px 24px;
+  }
+  .phone {
+    width: 400px;
+    background: #0e1621;
+    border: 1px solid #23384c;
+    border-radius: 34px;
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.5);
+    flex: 0 0 auto;
+  }
+  .cover {
+    height: 96px;
+    background:
+      radial-gradient(300px 120px at 80% 0%, rgba(255,215,122,.22), transparent 70%),
+      linear-gradient(135deg, #163b63, #0f2438);
+  }
+  .profile { padding: 0 20px 22px; margin-top: -38px; }
+  .avatar {
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    border: 4px solid #0e1621;
+    object-fit: cover;
+    display: block;
+  }
+  h1 { font-size: 22px; margin: 10px 0 2px; letter-spacing: -.4px; }
+  .sub { color: var(--muted); font-size: 13px; margin-bottom: 16px; }
+  .start {
+    width: 100%;
+    border: 0;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    font-size: 14px;
+    padding: 11px;
+    cursor: pointer;
+  }
+  .start:hover { background: #46b4ff; }
+  .desc {
+    margin-top: 16px;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: #dce9f7;
+    white-space: pre-line;
+  }
+  .desc a { color: #6cc4ff; }
+  .links { display: grid; gap: 7px; margin-top: 16px; }
+  .link {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border-radius: 9px;
+    background: #16222f;
+    border: 1px solid #223548;
+    color: #dce9f7;
+    font-size: 13px;
+    text-decoration: none;
+  }
+  .link:hover { background: #1c2b3b; }
+  .soon { color: #8fa6bc; }
+  .badge-soon {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: #ffd77a;
+    background: #3d3214;
+    border-radius: 999px;
+    padding: 3px 7px;
+  }
+  .side {
+    width: 430px;
+    color: #b9cde2;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .side h2 { font-size: 24px; margin: 0 0 6px; color: #fff; letter-spacing: -.5px; }
+  .side .lead { color: var(--muted); margin: 0 0 20px; }
+  .block {
+    background: #0d1a27;
+    border: 1px solid #1d2c3b;
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .block .head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .block .head b { color: #fff; font-size: 13px; }
+  .count { font-size: 12px; color: #6f8aa4; }
+  .count.ok { color: #8ff0bd; }
+  .text {
+    white-space: pre-line;
+    font-size: 13px;
+    color: #dce9f7;
+    line-height: 1.45;
+  }
+  .copy {
+    margin-top: 10px;
+    border: 1px solid #2a3f54;
+    background: #16222f;
+    color: #bcd6ee;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .copy:hover { background: #1c2b3b; }
+  .note { color: var(--muted); font-size: 12px; }
+  .note b { color: #dce9f7; }
+  @media (max-width: 940px) {
+    body { flex-direction: column; align-items: center; }
+    .side { width: 400px; }
+  }
+</style>
+</head>
+<body>
+  <div class="phone">
+    <div class="cover"></div>
+    <div class="profile">
+      <img class="avatar" src="assets/avatar.png" alt="Лапка Добра" />
+      <h1>Лапка Добра</h1>
+      <div class="sub">бот · волонтёрский проект</div>
+      <button class="start">ЗАПУСТИТЬ</button>
+
+      <div class="desc" id="phoneDesc"></div>
+
+      <div class="links">
+        <a class="link" href="https://vk.ru/akindpaw" target="_blank">
+          <span>💬 Группа ВКонтакте</span><span>→</span>
+        </a>
+        <div class="link soon">
+          <span>📢 Telegram-канал</span><span class="badge-soon">скоро</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="side">
+    <h2>Описание бота</h2>
+    <p class="lead">Вариант текста для профиля. Пока нигде не опубликован — сначала смотришь ты.</p>
+
+    <div class="block">
+      <div class="head">
+        <b>Короткое «О себе»</b>
+        <span class="count ok" id="aboutCount"></span>
+      </div>
+      <div class="text" id="aboutText"></div>
+      <button class="copy" data-copy="about">Скопировать</button>
+    </div>
+
+    <div class="block">
+      <div class="head">
+        <b>Описание до /start</b>
+        <span class="count ok" id="descCount"></span>
+      </div>
+      <div class="text" id="descText"></div>
+      <button class="copy" data-copy="desc">Скопировать</button>
+    </div>
+
+    <div class="block">
+      <div class="note">
+        <b>Где это видно:</b> короткий текст — в профиле бота, полный — на экране
+        перед первым /start.<br><br>
+        <b>Публикация:</b> только через @BotFather — <code>/setabouttext</code> и
+        <code>/setdescription</code>. Для этого нужен username бота.<br><br>
+        <b>ТГК:</b> когда канал появится, заменим «скоро» на ссылку в той же строке.
+      </div>
+    </div>
+  </aside>
+
+<script>
+  const ABOUT = "🐾 Я Лапка — бот «Лапки Добра». Помогаю вступить в команду, придумать идею и сделать первый добрый шаг. Присоединяйся!";
+  const DESCRIPTION = `🐾 Привет! Я Лапка — бот проекта «Лапка Добра». Я здесь, чтобы помогать вам делать добрые дела.
+
+Что можно сделать:
+• вступить в команду за пару минут;
+• предложить идею и довести её до реализации;
+• получать лапки и расти в уровне;
+• найти ближайшие дела и наставника.
+
+Добро начинается с маленького шага. Нажми /start — попробуем вместе.
+
+💬 ВКонтакте: https://vk.ru/akindpaw
+📢 Telegram-канал: скоро`;
+
+  const aboutText = document.getElementById("aboutText");
+  const descText = document.getElementById("descText");
+  const phoneDesc = document.getElementById("phoneDesc");
+
+  aboutText.textContent = ABOUT;
+  descText.textContent = DESCRIPTION;
+
+  phoneDesc.innerHTML = DESCRIPTION
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replace(
+      "https://vk.ru/akindpaw",
+      '<a href="https://vk.ru/akindpaw" target="_blank">https://vk.ru/akindpaw</a>',
+    );
+
+  const aboutLen = [...ABOUT].length;
+  const descLen = [...DESCRIPTION].length;
+  document.getElementById("aboutCount").textContent = `${aboutLen}/120`;
+  document.getElementById("descCount").textContent = `${descLen}/512`;
+
+  document.querySelectorAll("[data-copy]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const text = btn.dataset.copy === "about" ? ABOUT : DESCRIPTION;
+      try {
+        await navigator.clipboard.writeText(text);
+        btn.textContent = "Скопировано ✓";
+        setTimeout(() => (btn.textContent = "Скопировать"), 1500);
+      } catch {
+        btn.textContent = "Не удалось скопировать";
+      }
+    });
+  });
+</script>
+</body>
+</html>

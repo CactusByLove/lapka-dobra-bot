@@ -1,11 +1,12 @@
-import { adminKeyboard, applicationReviewKeyboard, backToMenu, ideaReviewKeyboard, pawRequestKeyboard, } from "./keyboards.js";
+import { InlineKeyboard } from "grammy";
+import { adminKeyboard, applicationReviewKeyboard, backToMenu, deleteUserKeyboard, ideaModerationKeyboard, ideaReviewKeyboard, pawRequestKeyboard, userCardKeyboard, usersNavKeyboard, } from "./keyboards.js";
 import { IDEA_STATUS_LABEL } from "./levels.js";
 import { clearKeyboard } from "./helpers.js";
-import { isAdmin } from "./notify.js";
-import { applicationText } from "./registration.js";
+import { isAdmin, isCreator, isStaff, notifyVolunteers } from "./notify.js";
+import { applicationText, approvedKeyboard } from "./registration.js";
 import { ideaCard } from "./ideas.js";
-import { allUsers, awardPaws, decidePawRequest, getIdea, getPawRequest, getUser, listIdeas, pendingPawRequests, setIdeaStatus, stats, updateUser, } from "./storage.js";
-import { escapeHtml } from "./texts.js";
+import { allUsers, awardPaws, decidePawRequest, getIdea, getPawRequest, getUser, listIdeas, pendingPawRequests, removeUser, setIdeaStatus, stats, updateUser, } from "./storage.js";
+import { adminUserCard, adminUserDetails, approvalText, escapeHtml, } from "./texts.js";
 async function requireAdmin(ctx) {
     if (ctx.from && isAdmin(ctx.from.id))
         return true;
@@ -15,15 +16,38 @@ async function requireAdmin(ctx) {
     });
     return false;
 }
-function statsText() {
+async function requireStaff(ctx) {
+    if (ctx.from && isStaff(ctx.from.id))
+        return true;
+    await ctx.answerCallbackQuery({
+        text: "Недостаточно прав",
+        show_alert: true,
+    });
+    return false;
+}
+function statsText(tgId) {
     const summary = stats();
-    return `📊 <b>Сводка проекта</b>
+    const head = tgId && isCreator(tgId) ? "👑 <b>Главная лапка</b>\n\n" : "";
+    return `${head}📊 <b>Сводка проекта</b>
 
 👥 Пользователи: ${summary.total}
 ✅ В команде: ${summary.approved}
 ⏳ На проверке: ${summary.pending}
 💡 Идей: ${summary.ideas} (в работе — ${summary.ideasInWork})
-🐾 Начислений на проверке: ${summary.pawsPending}`;
+🐾 Начислений на проверке: ${summary.pawsPending}
+🚫 Заблокированы: ${summary.blocked}`;
+}
+const USERS_PER_PAGE = 8;
+function usersPage(page) {
+    const users = [...allUsers()].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const pages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
+    const current = Math.min(Math.max(page, 0), pages - 1);
+    return {
+        users: users.slice(current * USERS_PER_PAGE, (current + 1) * USERS_PER_PAGE),
+        page: current,
+        pages,
+        total: users.length,
+    };
 }
 export function registerAdmin(bot) {
     bot.command("admin", async (ctx) => {
@@ -31,7 +55,7 @@ export function registerAdmin(bot) {
             await ctx.reply("Эта команда доступна координаторам проекта.");
             return;
         }
-        await ctx.reply(statsText(), {
+        await ctx.reply(statsText(ctx.from?.id), {
             parse_mode: "HTML",
             reply_markup: adminKeyboard(),
         });
@@ -40,7 +64,7 @@ export function registerAdmin(bot) {
         if (!(await requireAdmin(ctx)))
             return;
         await ctx.answerCallbackQuery();
-        await ctx.reply(statsText(), {
+        await ctx.reply(statsText(ctx.from?.id), {
             parse_mode: "HTML",
             reply_markup: adminKeyboard(),
         });
@@ -49,7 +73,7 @@ export function registerAdmin(bot) {
         if (!(await requireAdmin(ctx)))
             return;
         await ctx.answerCallbackQuery();
-        await ctx.reply(statsText(), {
+        await ctx.reply(statsText(ctx.from?.id), {
             parse_mode: "HTML",
             reply_markup: adminKeyboard(),
         });
@@ -84,7 +108,7 @@ export function registerAdmin(bot) {
         for (const idea of ideas) {
             await ctx.reply(ideaCard(idea), {
                 parse_mode: "HTML",
-                reply_markup: ideaReviewKeyboard(idea.id),
+                reply_markup: ideaModerationKeyboard(idea.id),
             });
         }
     });
@@ -102,6 +126,114 @@ export function registerAdmin(bot) {
         for (const request of requests) {
             await ctx.reply(`🐾 <b>${escapeHtml(request.userName)}</b>: +${request.amount}\n${escapeHtml(request.reason)}`, { parse_mode: "HTML", reply_markup: pawRequestKeyboard(request.id) });
         }
+    });
+    bot.callbackQuery(/^admin:users(?::(\d+))?$/, async (ctx) => {
+        if (!(await requireAdmin(ctx)))
+            return;
+        await ctx.answerCallbackQuery();
+        const data = usersPage(Number(ctx.match[1] ?? 0));
+        await ctx.reply(`👥 <b>Пользователи</b>\nВсего: ${data.total} · страница ${data.page + 1}/${data.pages}`, {
+            parse_mode: "HTML",
+            reply_markup: usersNavKeyboard(data.page, data.pages),
+        });
+        if (data.users.length === 0) {
+            await ctx.reply("Пока ни одного пользователя.");
+            return;
+        }
+        for (const user of data.users) {
+            await ctx.reply(adminUserCard(user), {
+                parse_mode: "HTML",
+                reply_markup: userCardKeyboard(user.tgId, user.blocked, user.role !== "creator" && user.tgId !== ctx.from.id),
+            });
+        }
+    });
+    bot.callbackQuery(/^user:view:(\d+)$/, async (ctx) => {
+        if (!(await requireAdmin(ctx)))
+            return;
+        const user = getUser(Number(ctx.match[1]));
+        if (!user) {
+            await ctx.answerCallbackQuery({
+                text: "Пользователь не найден",
+                show_alert: true,
+            });
+            return;
+        }
+        await ctx.answerCallbackQuery();
+        await ctx.reply(adminUserDetails(user), {
+            parse_mode: "HTML",
+            reply_markup: userCardKeyboard(user.tgId, user.blocked, user.role !== "creator" && user.tgId !== ctx.from.id),
+        });
+    });
+    bot.callbackQuery(/^user:(block|unblock):(\d+)$/, async (ctx) => {
+        if (!(await requireAdmin(ctx)))
+            return;
+        const blocked = ctx.match[1] === "block";
+        const tgId = Number(ctx.match[2]);
+        const user = getUser(tgId);
+        if (!user) {
+            await ctx.answerCallbackQuery({
+                text: "Пользователь не найден",
+                show_alert: true,
+            });
+            return;
+        }
+        if (user.role === "creator" || tgId === ctx.from.id) {
+            await ctx.answerCallbackQuery({
+                text: "Нельзя заблокировать создателя или себя",
+                show_alert: true,
+            });
+            return;
+        }
+        updateUser(tgId, { blocked });
+        await ctx.answerCallbackQuery(blocked ? "Заблокирован" : "Разблокирован");
+        await clearKeyboard(ctx);
+        await ctx.reply(`${blocked ? "🚫" : "✅"} <b>${escapeHtml(user.nickname)}</b> ${blocked ? "заблокирован(а)" : "разблокирован(а)"}.`, { parse_mode: "HTML" });
+    });
+    bot.callbackQuery(/^user:del:(\d+)$/, async (ctx) => {
+        if (!(await requireAdmin(ctx)))
+            return;
+        const tgId = Number(ctx.match[1]);
+        const user = getUser(tgId);
+        if (!user) {
+            await ctx.answerCallbackQuery({
+                text: "Пользователь не найден",
+                show_alert: true,
+            });
+            return;
+        }
+        if (user.role === "creator" || tgId === ctx.from.id) {
+            await ctx.answerCallbackQuery({
+                text: "Нельзя удалить создателя или себя",
+                show_alert: true,
+            });
+            return;
+        }
+        await ctx.answerCallbackQuery();
+        await ctx.reply(`🗑 Удалить <b>${escapeHtml(user.nickname)}</b>?\n\nПрофиль, лапки и заявки исчезнут. Это необратимо.`, { parse_mode: "HTML", reply_markup: deleteUserKeyboard(tgId) });
+    });
+    bot.callbackQuery(/^user:delok:(\d+)$/, async (ctx) => {
+        if (!(await requireAdmin(ctx)))
+            return;
+        const tgId = Number(ctx.match[1]);
+        const user = getUser(tgId);
+        if (!user) {
+            await ctx.answerCallbackQuery({
+                text: "Пользователь не найден",
+                show_alert: true,
+            });
+            return;
+        }
+        if (user.role === "creator" || tgId === ctx.from.id) {
+            await ctx.answerCallbackQuery({
+                text: "Нельзя удалить создателя или себя",
+                show_alert: true,
+            });
+            return;
+        }
+        removeUser(tgId);
+        await ctx.answerCallbackQuery("Удалён");
+        await clearKeyboard(ctx);
+        await ctx.reply(`Пользователь <b>${escapeHtml(user.nickname)}</b> удалён.`, { parse_mode: "HTML" });
     });
     bot.callbackQuery(/^app:(approve|reject|rework):(\d+)$/, async (ctx) => {
         if (!(await requireAdmin(ctx)))
@@ -132,7 +264,10 @@ export function registerAdmin(bot) {
             const award = awardPaws(tgId, 10, "Входной практикум");
             await ctx.reply(`✅ <b>${escapeHtml(user.name)}</b> принят(а) в команду. Начислено: +${award.granted} 🐾`, { parse_mode: "HTML" });
             await ctx.api
-                .sendMessage(tgId, `🎉 <b>Ты в команде!</b>\n\nЗаявка одобрена. +${award.granted} лапок за входной практикум.\n\nДальше: чат новичков, расписание и первое дело на 2–3 часа с наставником.`, { parse_mode: "HTML", reply_markup: backToMenu(false) })
+                .sendMessage(tgId, approvalText(user, award.granted), {
+                parse_mode: "HTML",
+                reply_markup: approvedKeyboard(),
+            })
                 .catch(() => undefined);
             return;
         }
@@ -150,9 +285,14 @@ export function registerAdmin(bot) {
             .sendMessage(tgId, "Нужно доработать заявку: напиши координатору, что поправить — и продолжим.", { reply_markup: backToMenu(false) })
             .catch(() => undefined);
     });
-    bot.callbackQuery(/^idea:st:(i\d+):(team|running|done|rejected)$/, async (ctx) => {
-        if (!(await requireAdmin(ctx)))
+    bot.callbackQuery(/^idea:st:(i\d+):(published|team|running|done|rejected)$/, async (ctx) => {
+        if (!ctx.from || !isCreator(ctx.from.id)) {
+            await ctx.answerCallbackQuery({
+                text: "Решение по идеям принимает Главная лапка",
+                show_alert: true,
+            });
             return;
+        }
         const id = ctx.match[1];
         const next = ctx.match[2];
         const idea = getIdea(id);
@@ -168,7 +308,7 @@ export function registerAdmin(bot) {
         const previous = idea.status;
         setIdeaStatus(id, next);
         let awardLine = "";
-        const shouldAward = (next === "team" && previous === "review") ||
+        const shouldAward = (next === "team" && (previous === "published" || previous === "review")) ||
             (next === "done" && previous !== "done");
         if (shouldAward) {
             const award = awardPaws(idea.authorTgId, 25, next === "team" ? "Идея принята в команду" : "Идея реализована");
@@ -177,12 +317,21 @@ export function registerAdmin(bot) {
         }
         const label = IDEA_STATUS_LABEL[next] ?? next;
         await ctx.reply(`💡 «${escapeHtml(idea.title)}» → <b>${label}</b>.${awardLine}`, { parse_mode: "HTML" });
+        if (next === "published") {
+            await ctx.api
+                .sendMessage(ctx.from.id, `💡 «${escapeHtml(idea.title)}» опубликована. Дальше можно собрать команду или взять идею в работу.`, { parse_mode: "HTML", reply_markup: ideaReviewKeyboard(id) })
+                .catch(() => undefined);
+            await notifyVolunteers(ctx.api, `${ideaCard(idea)}\n\n<i>Идея прошла модерацию и опубликована в банке.</i>`, new InlineKeyboard()
+                .text("🗂 Открыть банк идей", "menu:bank")
+                .row()
+                .text("💡 Предложить свою", "idea:start"));
+        }
         await ctx.api
             .sendMessage(idea.authorTgId, `💡 Твоя идея «${escapeHtml(idea.title)}»: <b>${label}</b>.${awardLine}`, { parse_mode: "HTML", reply_markup: backToMenu(false) })
             .catch(() => undefined);
     });
     bot.callbackQuery(/^pawreq:(yes|no):(p\d+)$/, async (ctx) => {
-        if (!(await requireAdmin(ctx)))
+        if (!(await requireStaff(ctx)))
             return;
         const approve = ctx.match[1] === "yes";
         const id = ctx.match[2];

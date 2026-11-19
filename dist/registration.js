@@ -1,9 +1,11 @@
-import { applicationReviewKeyboard, backToMenu, confirmKeyboard, consentKeyboard, directionsKeyboard, roleKeyboard, } from "./keyboards.js";
+import { InlineKeyboard } from "grammy";
+import { CALLBACKS, applicationReviewKeyboard, backToMenu, confirmKeyboard, consentKeyboard, directionsKeyboard, roleKeyboard, } from "./keyboards.js";
 import { DIRECTIONS, ROLE_LABEL } from "./levels.js";
-import { isAdmin, notifyAdmins } from "./notify.js";
+import { sendScreen } from "./helpers.js";
+import { isAdmin, notifyAdmins, notifyMentors } from "./notify.js";
 import { getUser, upsertUser } from "./storage.js";
 import { sessionsStore } from "./state.js";
-import { escapeHtml } from "./texts.js";
+import { CHAT_INVITE_URL, escapeHtml } from "./texts.js";
 function summary(draft) {
     const minorLine = draft.age <= 17
         ? `\n🛡 Согласие родителей: ${draft.parentConsent && draft.parentConsentFileId
@@ -12,7 +14,8 @@ function summary(draft) {
         : "";
     return `Проверь заявку:
 
-👤 <b>${escapeHtml(draft.name)}</b>
+👤 <b>${escapeHtml(draft.nickname)}</b>
+🏷 Имя: ${escapeHtml(draft.name)}
 🎂 Возраст: ${draft.age}
 🧩 Роль: ${ROLE_LABEL[draft.role]}
 🧭 Направление: ${escapeHtml(draft.direction)}${minorLine}`;
@@ -25,11 +28,19 @@ export function applicationText(user) {
         : "не требуется";
     return `🐾 <b>Новая заявка в команду</b>
 
-👤 <b>${escapeHtml(user.name)}</b>${user.username ? ` (@${escapeHtml(user.username)})` : ""}
+👤 <b>${escapeHtml(user.nickname)}</b>${user.username ? ` (@${escapeHtml(user.username)})` : ""}
+🏷 Имя: ${escapeHtml(user.name)}
 🎂 ${user.age} лет · ${ROLE_LABEL[user.role]}
 🧭 ${escapeHtml(user.direction)}
 🛡 Согласие родителей: ${consent}
 🆔 <code>${user.tgId}</code>`;
+}
+/** Кнопки в личном сообщении после одобрения заявки. */
+export function approvedKeyboard() {
+    return new InlineKeyboard()
+        .url("💬 Войти в чат команды", CHAT_INVITE_URL)
+        .row()
+        .text("🐾 В меню", CALLBACKS.MAIN);
 }
 export function registerRegistration(bot) {
     bot.callbackQuery("reg:start", async (ctx) => {
@@ -38,14 +49,14 @@ export function registerRegistration(bot) {
         const existing = getUser(userId);
         sessionsStore.clear(userId);
         if (existing?.status === "approved") {
-            await ctx.reply(`Ты уже в команде, <b>${escapeHtml(existing.name)}</b> 🐾\nОткрой «Мои лапки», чтобы увидеть уровень и историю.`, { parse_mode: "HTML", reply_markup: backToMenu(isAdmin(userId)) });
+            await sendScreen(ctx, `Ты уже в команде, <b>${escapeHtml(existing.name)}</b> 🐾\nОткрой «Мои лапки», чтобы увидеть уровень и историю.`, { parse_mode: "HTML", reply_markup: backToMenu(isAdmin(userId)) });
             return;
         }
         if (existing?.status === "pending") {
-            await ctx.reply("Твоя заявка уже на проверке ⏳\nОтветим в течение дня. Если что-то изменилось — напиши координатору.", { reply_markup: backToMenu(isAdmin(userId)) });
+            await sendScreen(ctx, "Твоя заявка уже на проверке ⏳\nОтветим в течение дня. Если что-то изменилось — напиши координатору.", { reply_markup: backToMenu(isAdmin(userId)) });
             return;
         }
-        await ctx.reply("Давай познакомимся 🐾\n\n<b>Кто ты?</b>", {
+        await sendScreen(ctx, "Давай познакомимся 🐾\n\n<b>Кто ты?</b>", {
             parse_mode: "HTML",
             reply_markup: roleKeyboard(),
         });
@@ -54,7 +65,7 @@ export function registerRegistration(bot) {
         const role = ctx.match[1];
         await ctx.answerCallbackQuery();
         sessionsStore.set(ctx.from.id, { kind: "reg:name", role });
-        await ctx.reply(`<b>${ROLE_LABEL[role]}</b> — хороший вход.\n\nКак тебя зовут? Напиши имя, которым тебя зовут в проекте.`, { parse_mode: "HTML" });
+        await sendScreen(ctx, `<b>${ROLE_LABEL[role]}</b> — хороший вход.\n\nКак тебя зовут? Напиши имя, которым тебя зовут в проекте.`, { parse_mode: "HTML" });
     });
     bot.callbackQuery("reg:consent:yes", async (ctx) => {
         const session = sessionsStore.get(ctx.from.id);
@@ -70,10 +81,11 @@ export function registerRegistration(bot) {
             kind: "reg:consentDoc",
             role: session.role,
             name: session.name,
+            nickname: session.nickname,
             age: session.age,
             parentConsent: true,
         });
-        await ctx.reply("Хорошо. Теперь <b>прикрепи документ</b>: фото подписанного согласия или файл электронной формы.\n\nБез документа заявка не станет активной — это правило проекта, а не формальность.", { parse_mode: "HTML" });
+        await sendScreen(ctx, "Хорошо. Теперь <b>прикрепи документ</b>: фото подписанного согласия или файл электронной формы.\n\nБез документа заявка не станет активной — это правило проекта, а не формальность.", { parse_mode: "HTML" });
     });
     bot.callbackQuery("reg:consent:doc", async (ctx) => {
         const session = sessionsStore.get(ctx.from.id);
@@ -89,10 +101,11 @@ export function registerRegistration(bot) {
             kind: "reg:consentDoc",
             role: session.role,
             name: session.name,
+            nickname: session.nickname,
             age: session.age,
             parentConsent: false,
         });
-        await ctx.reply("Прикрепи фото или файл документа от родителей. Подойдёт подписанное согласие или скрин электронной формы.");
+        await sendScreen(ctx, "Прикрепи фото или файл документа от родителей. Подойдёт подписанное согласие или скрин электронной формы.");
     });
     bot.callbackQuery(/^reg:dir:(.+)$/, async (ctx) => {
         const session = sessionsStore.get(ctx.from.id);
@@ -118,7 +131,7 @@ export function registerRegistration(bot) {
             direction: `${direction.emoji} ${direction.label}`,
         };
         sessionsStore.set(ctx.from.id, { kind: "reg:confirm", draft });
-        await ctx.reply(summary(draft), {
+        await sendScreen(ctx, summary(draft), {
             parse_mode: "HTML",
             reply_markup: confirmKeyboard(),
         });
@@ -147,12 +160,14 @@ export function registerRegistration(bot) {
             tgId: ctx.from.id,
             username: ctx.from.username ?? null,
             name: draft.name,
+            nickname: draft.nickname,
             age: draft.age,
             role: draft.role,
             direction: draft.direction,
             parentConsent: draft.parentConsent,
             parentConsentFileId: draft.parentConsentFileId,
             status: "pending",
+            blocked: false,
             paws: 0,
             pawsWeekStart: "",
             pawsThisWeek: 0,
@@ -163,29 +178,45 @@ export function registerRegistration(bot) {
         };
         upsertUser(user);
         sessionsStore.clear(ctx.from.id);
-        await ctx.reply("✅ <b>Заявка отправлена!</b>\n\nКоординатор проверит её в течение дня. После одобрения откроются чат новичков, расписание и первое дело на 2–3 часа с наставником.", { parse_mode: "HTML", reply_markup: backToMenu(isAdmin(ctx.from.id)) });
+        await sendScreen(ctx, "✅ <b>Заявка отправлена!</b>\n\nГлавная лапка и координатор проверят её в течение дня. После одобрения откроются чат команды, расписание и первое дело на 2–3 часа с наставником.", { parse_mode: "HTML", reply_markup: backToMenu(isAdmin(ctx.from.id)) });
         await notifyAdmins(ctx.api, applicationText(user), applicationReviewKeyboard(user.tgId));
+        await notifyMentors(ctx.api, `${applicationText(user)}\n\n<i>Решение принимает Главная лапка или координатор.</i>`);
     });
 }
 /** Текстовые шаги регистрации: имя и возраст. */ export async function regTextStep(ctx, session) {
     const text = (ctx.message?.text ?? "").trim();
     if (session.kind === "reg:name") {
         if (text.length < 2 || text.length > 60) {
-            await ctx.reply("Имя — от 2 до 60 символов. Как тебя зовут?");
+            await sendScreen(ctx, "Имя — от 2 до 60 символов. Как тебя зовут?");
+            return true;
+        }
+        sessionsStore.set(ctx.from.id, {
+            kind: "reg:nickname",
+            role: session.role,
+            name: text,
+        });
+        await sendScreen(ctx, `Приятно познакомиться, <b>${escapeHtml(text)}</b>.\n\n<b>Придумай никнейм</b> — его увидят в профиле и заявках. 2–32 символа: буквы, цифры, пробел, _ или дефис.`, { parse_mode: "HTML" });
+        return true;
+    }
+    if (session.kind === "reg:nickname") {
+        const nickname = text.replace(/^@/, "").trim();
+        if (!/^[A-Za-zА-Яа-яЁё0-9_ -]{2,32}$/.test(nickname)) {
+            await sendScreen(ctx, "Никнейм — 2–32 символа: буквы, цифры, пробел, _ или дефис. Попробуй ещё раз.");
             return true;
         }
         sessionsStore.set(ctx.from.id, {
             kind: "reg:age",
             role: session.role,
-            name: text,
+            name: session.name,
+            nickname,
         });
-        await ctx.reply(`Приятно познакомиться, <b>${escapeHtml(text)}</b>.\n\n<b>Сколько тебе лет?</b>\nНапиши числом — проект для 14–35 лет.`, { parse_mode: "HTML" });
+        await sendScreen(ctx, `Отлично, <b>${escapeHtml(nickname)}</b> — так тебя увидят в команде.\n\n<b>Сколько тебе лет?</b>\nНапиши числом — проект для 14–35 лет.`, { parse_mode: "HTML" });
         return true;
     }
     if (session.kind === "reg:age") {
         const age = Number(text.replace(",", "."));
         if (!Number.isInteger(age) || age < 14 || age > 35) {
-            await ctx.reply("Возраст — целым числом от 14 до 35. Сколько тебе лет?");
+            await sendScreen(ctx, "Возраст — целым числом от 14 до 35. Сколько тебе лет?");
             return true;
         }
         if (age <= 17) {
@@ -193,9 +224,10 @@ export function registerRegistration(bot) {
                 kind: "reg:consent",
                 role: session.role,
                 name: session.name,
+                nickname: session.nickname,
                 age,
             });
-            await ctx.reply("Тебе 14–17 — нужен документ от родителей.\n\nВыбери вариант: если родители уже согласны — пришли документ; можно сначала подтвердить, потом приложить файл.", { reply_markup: consentKeyboard() });
+            await sendScreen(ctx, "Тебе 14–17 — нужен документ от родителей.\n\nВыбери вариант: если родители уже согласны — пришли документ; можно сначала подтвердить, потом приложить файл.", { reply_markup: consentKeyboard() });
             return true;
         }
         sessionsStore.set(ctx.from.id, {
@@ -203,12 +235,13 @@ export function registerRegistration(bot) {
             base: {
                 role: session.role,
                 name: session.name,
+                nickname: session.nickname,
                 age,
                 parentConsent: false,
                 parentConsentFileId: null,
             },
         });
-        await ctx.reply("<b>Что тебе интереснее всего?</b>\nНаправление можно поменять позже — это не навсегда.", { parse_mode: "HTML", reply_markup: directionsKeyboard() });
+        await sendScreen(ctx, "<b>Что тебе интереснее всего?</b>\nНаправление можно поменять позже — это не навсегда.", { parse_mode: "HTML", reply_markup: directionsKeyboard() });
         return true;
     }
     return false;
@@ -219,7 +252,7 @@ export async function regMediaStep(ctx, session) {
         return false;
     const fileId = ctx.message?.photo?.at(-1)?.file_id ?? ctx.message?.document?.file_id;
     if (!fileId) {
-        await ctx.reply("Не вижу файла. Прикрепи фото или документ согласия.");
+        await sendScreen(ctx, "Не вижу файла. Прикрепи фото или документ согласия.");
         return true;
     }
     sessionsStore.set(ctx.from.id, {
@@ -227,11 +260,12 @@ export async function regMediaStep(ctx, session) {
         base: {
             role: session.role,
             name: session.name,
+            nickname: session.nickname,
             age: session.age,
             parentConsent: true,
             parentConsentFileId: fileId,
         },
     });
-    await ctx.reply("Документ получен ✅\n\n<b>Что тебе интереснее всего?</b>\nНаправление можно поменять позже.", { parse_mode: "HTML", reply_markup: directionsKeyboard() });
+    await sendScreen(ctx, "Документ получен ✅\n\n<b>Что тебе интереснее всего?</b>\nНаправление можно поменять позже.", { parse_mode: "HTML", reply_markup: directionsKeyboard() });
     return true;
 }

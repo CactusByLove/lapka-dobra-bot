@@ -46,7 +46,11 @@ function load(): Database {
   try {
     const parsed = JSON.parse(readFileSync(dbPath, "utf8")) as Database;
     return {
-      users: parsed.users ?? [],
+      users: (parsed.users ?? []).map((user) => ({
+        ...user,
+        nickname: user.nickname ?? user.name,
+        blocked: user.blocked ?? false,
+      })),
       ideas: parsed.ideas ?? [],
       pawRequests: parsed.pawRequests ?? [],
       seq: parsed.seq ?? 0,
@@ -97,6 +101,55 @@ export function updateUser(
 
 export function allUsers(): UserRecord[] {
   return db.users;
+}
+
+/** Полное удаление пользователя и его заявок на лапки. */
+export function removeUser(tgId: number): boolean {
+  const before = db.users.length;
+  db.users = db.users.filter((user) => user.tgId !== tgId);
+  db.pawRequests = db.pawRequests.filter((request) => request.tgId !== tgId);
+  persist();
+  return db.users.length < before;
+}
+
+/** Аккаунт Главной лапки: создатель с полным доступом. */
+export function ensureCreator(): UserRecord {
+  const creatorId = Number(process.env.CREATOR_ID ?? "821345725");
+  const existing = getUser(creatorId);
+
+  if (!existing) {
+    const record: UserRecord = {
+      tgId: creatorId,
+      username: null,
+      name: "Тима",
+      nickname: "Тима",
+      age: 18,
+      role: "creator",
+      direction: "Проект",
+      parentConsent: false,
+      parentConsentFileId: null,
+      status: "approved",
+      blocked: false,
+      paws: 0,
+      pawsWeekStart: "",
+      pawsThisWeek: 0,
+      streak: 0,
+      lastActivityDate: null,
+      lastDailyDate: null,
+      createdAt: new Date().toISOString(),
+    };
+    db.users.push(record);
+    persist();
+    return record;
+  }
+
+  existing.role = "creator";
+  existing.status = "approved";
+  existing.blocked = false;
+  existing.name = "Тима";
+  existing.nickname = "Тима";
+  persist();
+  return existing;
 }
 
 // ---------- лапки ----------
@@ -240,6 +293,12 @@ export function listIdeas(): IdeaRecord[] {
   return [...db.ideas].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+/** Идеи, которые уже прошли модерацию и видны в банке. */
+export function listPublishedIdeas(): IdeaRecord[] {
+  const visible = new Set(["published", "team", "running", "done"]);
+  return listIdeas().filter((idea) => visible.has(idea.status));
+}
+
 export function setIdeaStatus(id: string, status: IdeaStatus): IdeaRecord | null {
   const idea = getIdea(id);
   if (!idea) return null;
@@ -257,7 +316,13 @@ export function stats() {
     approved: users.filter((u) => u.status === "approved").length,
     pending: users.filter((u) => u.status === "pending").length,
     ideas: db.ideas.length,
-    ideasInWork: db.ideas.filter((i) => i.status !== "done").length,
+    ideasInWork: db.ideas.filter(
+      (i) =>
+        i.status === "published" ||
+        i.status === "team" ||
+        i.status === "running",
+    ).length,
     pawsPending: pendingPawRequests().length,
+    blocked: db.users.filter((user) => user.blocked).length,
   };
 }

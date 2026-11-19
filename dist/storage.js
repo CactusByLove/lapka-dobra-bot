@@ -34,7 +34,11 @@ function load() {
     try {
         const parsed = JSON.parse(readFileSync(dbPath, "utf8"));
         return {
-            users: parsed.users ?? [],
+            users: (parsed.users ?? []).map((user) => ({
+                ...user,
+                nickname: user.nickname ?? user.name,
+                blocked: user.blocked ?? false,
+            })),
             ideas: parsed.ideas ?? [],
             pawRequests: parsed.pawRequests ?? [],
             seq: parsed.seq ?? 0,
@@ -79,6 +83,51 @@ export function updateUser(tgId, patch) {
 }
 export function allUsers() {
     return db.users;
+}
+/** Полное удаление пользователя и его заявок на лапки. */
+export function removeUser(tgId) {
+    const before = db.users.length;
+    db.users = db.users.filter((user) => user.tgId !== tgId);
+    db.pawRequests = db.pawRequests.filter((request) => request.tgId !== tgId);
+    persist();
+    return db.users.length < before;
+}
+/** Аккаунт Главной лапки: создатель с полным доступом. */
+export function ensureCreator() {
+    const creatorId = Number(process.env.CREATOR_ID ?? "821345725");
+    const existing = getUser(creatorId);
+    if (!existing) {
+        const record = {
+            tgId: creatorId,
+            username: null,
+            name: "Тима",
+            nickname: "Тима",
+            age: 18,
+            role: "creator",
+            direction: "Проект",
+            parentConsent: false,
+            parentConsentFileId: null,
+            status: "approved",
+            blocked: false,
+            paws: 0,
+            pawsWeekStart: "",
+            pawsThisWeek: 0,
+            streak: 0,
+            lastActivityDate: null,
+            lastDailyDate: null,
+            createdAt: new Date().toISOString(),
+        };
+        db.users.push(record);
+        persist();
+        return record;
+    }
+    existing.role = "creator";
+    existing.status = "approved";
+    existing.blocked = false;
+    existing.name = "Тима";
+    existing.nickname = "Тима";
+    persist();
+    return existing;
 }
 /** Начисление с лимитом 100 лапок в неделю на уровне данных */
 export function awardPaws(tgId, amount, _reason) {
@@ -187,6 +236,11 @@ export function getIdea(id) {
 export function listIdeas() {
     return [...db.ideas].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
+/** Идеи, которые уже прошли модерацию и видны в банке. */
+export function listPublishedIdeas() {
+    const visible = new Set(["published", "team", "running", "done"]);
+    return listIdeas().filter((idea) => visible.has(idea.status));
+}
 export function setIdeaStatus(id, status) {
     const idea = getIdea(id);
     if (!idea)
@@ -203,7 +257,10 @@ export function stats() {
         approved: users.filter((u) => u.status === "approved").length,
         pending: users.filter((u) => u.status === "pending").length,
         ideas: db.ideas.length,
-        ideasInWork: db.ideas.filter((i) => i.status !== "done").length,
+        ideasInWork: db.ideas.filter((i) => i.status === "published" ||
+            i.status === "team" ||
+            i.status === "running").length,
         pawsPending: pendingPawRequests().length,
+        blocked: db.users.filter((user) => user.blocked).length,
     };
 }

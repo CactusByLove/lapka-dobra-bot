@@ -3,6 +3,7 @@ import type { Role } from "./types.js";
 export interface RegBase {
   role: Role;
   name: string;
+  nickname: string;
   age: number;
   parentConsent: boolean;
   parentConsentFileId: string | null;
@@ -14,9 +15,10 @@ export interface RegDraft extends RegBase {
 
 export type Session =
   | { kind: "reg:name"; role: Role }
-  | { kind: "reg:age"; role: Role; name: string }
-  | { kind: "reg:consent"; role: Role; name: string; age: number }
-  | { kind: "reg:consentDoc"; role: Role; name: string; age: number; parentConsent: boolean }
+  | { kind: "reg:nickname"; role: Role; name: string }
+  | { kind: "reg:age"; role: Role; name: string; nickname: string }
+  | { kind: "reg:consent"; role: Role; name: string; nickname: string; age: number }
+  | { kind: "reg:consentDoc"; role: Role; name: string; nickname: string; age: number; parentConsent: boolean }
   | { kind: "reg:direction"; base: RegBase }
   | { kind: "reg:confirm"; draft: RegDraft }
   | { kind: "idea:title" }

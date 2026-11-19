@@ -2,10 +2,17 @@ import "dotenv/config";
 import { createServer } from "node:http";
 import { Bot } from "grammy";
 import { registerHandlers } from "./handlers.js";
+import { ensureCreator } from "./storage.js";
 const token = process.env.BOT_TOKEN?.trim();
 if (!token) {
     console.error("BOT_TOKEN не задан.\nСкопируй bot/.env.example в bot/.env и вставь токен из @BotFather.");
     process.exit(1);
+}
+try {
+    ensureCreator();
+}
+catch (error) {
+    console.error("Не удалось создать аккаунт Главной лапки:", error);
 }
 const bot = new Bot(token);
 bot.catch((error) => {
