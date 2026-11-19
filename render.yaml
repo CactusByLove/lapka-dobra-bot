@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: lapka-dobra-bot
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      - key: SITE_URL
+        sync: false
+      - key: DOBRO_URL
+        sync: false
+      - key: CONTACT_URL
+        sync: false
+      - key: TIMEZONE
+        value: Asia/Yekaterinburg

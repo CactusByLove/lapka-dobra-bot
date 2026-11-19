@@ -1,0 +1,16 @@
+[Unit]
+Description=Lapka Dobra Telegram bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/lapka-bot
+EnvironmentFile=/opt/lapka-bot/.env
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=5
+User=lapka
+
+[Install]
+WantedBy=multi-user.target

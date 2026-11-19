@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Лапка Добра — аватар</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100vw; height: 100vh; overflow: hidden; background: #0a1d57; }
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 512px; height: 512px;
+    transform: scale(2); transform-origin: top left;
+    overflow: hidden;
+    background: radial-gradient(420px 420px at 50% 38%, #1B4BB2 0%, #123A8C 42%, #0A1D57 100%);
+  }
+  body {
+    position: relative;
+    background:
+      radial-gradient(420px 420px at 50% 38%, #1B4BB2 0%, #123A8C 42%, #0A1D57 100%);
+  }
+  .glow {
+    position: absolute; inset: 0;
+    background: radial-gradient(240px 240px at 50% 46%, rgba(90,150,255,.5), transparent 70%);
+  }
+  .mascot { position: absolute; inset: 0; width: 512px; height: 512px; }
+  .heart { position: absolute; right: 92px; top: 78px; transform: rotate(12deg); }
+</style>
+</head>
+<body>
+<div id="stage" role="img" aria-label="Аватар Лапка Добра">
+  <div class="glow"></div>
+
+  <svg class="heart" width="46" height="43" viewBox="0 0 54 50" fill="none">
+    <path d="M27 46C27 46 4 33 4 17.5C4 8.9 10.9 3 18.6 3C22.9 3 25.6 5.1 27 7.3C28.4 5.1 31.1 3 35.4 3C43.1 3 50 8.9 50 17.5C50 33 27 46 27 46Z" fill="#FFB020"/>
+  </svg>
+
+  <svg class="mascot" viewBox="118 96 324 336" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FF8A3D"/>
+        <stop offset="1" stop-color="#E85A17"/>
+      </linearGradient>
+      <linearGradient id="cream" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FFF4E4"/>
+        <stop offset="1" stop-color="#F2DDC3"/>
+      </linearGradient>
+      <filter id="soft" x="-25%" y="-25%" width="150%" height="150%">
+        <feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#04123A" flood-opacity="0.5"/>
+      </filter>
+    </defs>
+
+    <g filter="url(#soft)">
+      <!-- тело снизу -->
+      <ellipse cx="280" cy="430" rx="150" ry="140" fill="url(#fur)"/>
+
+      <!-- голова -->
+      <ellipse cx="280" cy="250" rx="148" ry="132" fill="url(#fur)"/>
+
+      <!-- уши -->
+      <path d="M 172 178 C 140 100, 152 72, 196 80 C 226 86, 236 116, 222 152 Z" fill="url(#cream)"/>
+      <path d="M 186 156 C 170 116, 178 102, 198 108 C 212 112, 216 128, 210 148 Z" fill="#8A4A2B"/>
+      <path d="M 388 178 C 420 100, 408 72, 364 80 C 334 86, 324 116, 338 152 Z" fill="url(#cream)"/>
+      <path d="M 374 156 C 390 116, 382 102, 362 108 C 348 112, 344 128, 350 148 Z" fill="#8A4A2B"/>
+
+      <!-- щёки -->
+      <ellipse cx="190" cy="282" rx="48" ry="42" fill="url(#cream)"/>
+      <ellipse cx="370" cy="282" rx="48" ry="42" fill="url(#cream)"/>
+
+      <!-- морда -->
+      <ellipse cx="280" cy="308" rx="70" ry="54" fill="url(#cream)"/>
+
+      <!-- брови -->
+      <ellipse cx="222" cy="206" rx="18" ry="11" fill="url(#cream)"/>
+      <ellipse cx="338" cy="206" rx="18" ry="11" fill="url(#cream)"/>
+
+      <!-- глаза -->
+      <circle cx="222" cy="252" r="28" fill="#161616"/>
+      <circle cx="214" cy="242" r="9" fill="#FFFFFF"/>
+      <circle cx="230" cy="262" r="4" fill="#FFFFFF" opacity="0.9"/>
+      <circle cx="338" cy="252" r="28" fill="#161616"/>
+      <circle cx="330" cy="242" r="9" fill="#FFFFFF"/>
+      <circle cx="346" cy="262" r="4" fill="#FFFFFF" opacity="0.9"/>
+
+      <!-- нос и улыбка -->
+      <path d="M 264 292 Q 280 282 296 292 Q 296 306 280 306 Q 264 306 264 292 Z" fill="#3B2317"/>
+      <path d="M 280 306 L 280 316" stroke="#3B2317" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 252 316 Q 268 334 280 316" fill="none" stroke="#3B2317" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 308 316 Q 292 334 280 316" fill="none" stroke="#3B2317" stroke-width="5" stroke-linecap="round"/>
+
+      <!-- блик -->
+      <ellipse cx="232" cy="176" rx="34" ry="18" fill="#FFFFFF" opacity="0.18"/>
+    </g>
+  </svg>
+</div>
+</body>
+</html>

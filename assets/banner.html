@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Лапка Добра — баннер</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100vw; height: 100vh; overflow: hidden; background: #08194a; }
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 1280px; height: 640px;
+    transform: scale(2); transform-origin: top left;
+    overflow: hidden;
+  }
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #08194a;
+    position: relative;
+  }
+  .bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(900px 520px at 10% 16%, rgba(46,108,255,.42), transparent 62%),
+      radial-gradient(760px 560px at 88% 20%, rgba(28,78,220,.5), transparent 64%),
+      radial-gradient(700px 700px at 60% 110%, rgba(255,154,31,.18), transparent 60%),
+      linear-gradient(160deg, #0a1d57 0%, #0e2a78 45%, #123a96 100%);
+  }
+  .dots {
+    position: absolute; inset: 0; opacity: .5;
+    background-image:
+      radial-gradient(circle at 18% 22%, rgba(255,255,255,.55) 2px, transparent 2.5px),
+      radial-gradient(circle at 34% 12%, rgba(255,255,255,.35) 1.5px, transparent 2px),
+      radial-gradient(circle at 66% 8%, rgba(255,255,255,.45) 2px, transparent 2.5px),
+      radial-gradient(circle at 82% 30%, rgba(255,255,255,.3) 1.5px, transparent 2px),
+      radial-gradient(circle at 52% 26%, rgba(255,255,255,.3) 1.5px, transparent 2px);
+  }
+  .wave { position: absolute; left: 0; right: 0; bottom: 0; height: 152px; }
+  .left { position: absolute; left: 62px; top: 128px; width: 660px; }
+  .wordmark {
+    font-size: 128px;
+    line-height: .84;
+    font-weight: 900;
+    color: #ffffff;
+    letter-spacing: -0.012em;
+    text-transform: uppercase;
+    text-shadow:
+      0 7px 0 rgba(6,20,62,.55),
+      0 22px 38px rgba(0,0,0,.38);
+  }
+  .wordmark span { display: inline-block; }
+  .swoosh { margin-top: 14px; display: block; }
+  .tagline {
+    margin-top: 14px;
+    font-size: 34px;
+    font-weight: 700;
+    color: #eaf1ff;
+    letter-spacing: .005em;
+    text-shadow: 0 4px 16px rgba(0,0,0,.35);
+  }
+  .mascot { position: absolute; right: -8px; bottom: -8px; height: 604px; }
+  .heart { position: absolute; }
+  .heart-1 { right: 300px; top: 54px; transform: rotate(-8deg); }
+  .heart-2 { right: 70px; top: 120px; transform: rotate(10deg) scale(.7); }
+  .paw { position: absolute; left: 52px; top: 26px; opacity: .35; }
+  .spark { position: absolute; background: #ffb020; border-radius: 3px; }
+  .spark-1 { left: 690px; top: 170px; width: 8px; height: 34px; transform: rotate(42deg); }
+  .spark-2 { left: 726px; top: 214px; width: 7px; height: 24px; transform: rotate(42deg); }
+  .spark-3 { left: 660px; top: 232px; width: 6px; height: 20px; transform: rotate(42deg); }
+</style>
+</head>
+<body>
+<div id="stage" role="img" aria-label="Баннер Лапка Добра">
+  <div class="bg"></div>
+  <div class="dots"></div>
+
+  <svg class="paw" width="86" height="86" viewBox="0 0 100 100" fill="none">
+    <ellipse cx="50" cy="66" rx="30" ry="24" fill="#BFD4FF"/>
+    <circle cx="26" cy="34" r="12" fill="#BFD4FF"/>
+    <circle cx="46" cy="24" r="12" fill="#BFD4FF"/>
+    <circle cx="68" cy="32" r="12" fill="#BFD4FF"/>
+  </svg>
+
+  <div class="spark spark-1"></div>
+  <div class="spark spark-2"></div>
+  <div class="spark spark-3"></div>
+
+  <svg class="heart heart-1" width="54" height="50" viewBox="0 0 54 50" fill="none">
+    <path d="M27 46C27 46 4 33 4 17.5C4 8.9 10.9 3 18.6 3C22.9 3 25.6 5.1 27 7.3C28.4 5.1 31.1 3 35.4 3C43.1 3 50 8.9 50 17.5C50 33 27 46 27 46Z" fill="#FFB020"/>
+  </svg>
+  <svg class="heart heart-2" width="54" height="50" viewBox="0 0 54 50" fill="none">
+    <path d="M27 46C27 46 4 33 4 17.5C4 8.9 10.9 3 18.6 3C22.9 3 25.6 5.1 27 7.3C28.4 5.1 31.1 3 35.4 3C43.1 3 50 8.9 50 17.5C50 33 27 46 27 46Z" fill="#FF9A1F"/>
+  </svg>
+
+  <div class="left">
+    <div class="wordmark">Лапка<br><span>Добра</span></div>
+    <svg class="swoosh" width="380" height="26" viewBox="0 0 380 26">
+      <path d="M5 20 Q 190 0 375 14" stroke="#FFB020" stroke-width="12" fill="none" stroke-linecap="round"/>
+    </svg>
+    <div class="tagline">Как вы добились такого успеха?</div>
+  </div>
+
+  <svg class="mascot" viewBox="0 0 560 620" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FF8A3D"/>
+        <stop offset="1" stop-color="#E85A17"/>
+      </linearGradient>
+      <linearGradient id="furDark" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#9A5230"/>
+        <stop offset="1" stop-color="#74381E"/>
+      </linearGradient>
+      <linearGradient id="cream" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="#FFF4E4"/>
+        <stop offset="1" stop-color="#F2DDC3"/>
+      </linearGradient>
+      <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+        <stop offset="0" stop-color="#3E7BFF" stop-opacity="0.5"/>
+        <stop offset="1" stop-color="#3E7BFF" stop-opacity="0"/>
+      </radialGradient>
+      <filter id="soft" x="-25%" y="-25%" width="150%" height="150%">
+        <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#04123A" flood-opacity="0.45"/>
+      </filter>
+    </defs>
+
+    <ellipse cx="290" cy="330" rx="300" ry="310" fill="url(#glow)"/>
+
+    <g filter="url(#soft)">
+      <!-- хвост -->
+      <path d="M 385 510 C 470 500, 490 390, 445 350" fill="none" stroke="url(#fur)" stroke-width="96" stroke-linecap="round"/>
+      <path d="M 385 510 C 470 500, 490 390, 445 350" fill="none" stroke="#C8451A" stroke-width="96" stroke-linecap="round" stroke-dasharray="28 46" opacity="0.85"/>
+
+      <!-- тело -->
+      <ellipse cx="280" cy="430" rx="150" ry="140" fill="url(#fur)"/>
+      <ellipse cx="280" cy="455" rx="98" ry="105" fill="url(#furDark)"/>
+
+      <!-- ноги -->
+      <ellipse cx="212" cy="545" rx="52" ry="44" fill="url(#furDark)"/>
+      <ellipse cx="348" cy="545" rx="52" ry="44" fill="url(#furDark)"/>
+
+      <!-- левая лапа -->
+      <ellipse cx="150" cy="430" rx="38" ry="72" fill="url(#fur)" transform="rotate(18 150 430)"/>
+      <ellipse cx="138" cy="492" rx="34" ry="30" fill="url(#furDark)" transform="rotate(18 138 492)"/>
+
+      <!-- правая лапа машет -->
+      <path d="M 385 395 C 425 355, 440 305, 430 268" fill="none" stroke="url(#fur)" stroke-width="62" stroke-linecap="round"/>
+      <circle cx="432" cy="258" r="40" fill="url(#furDark)"/>
+      <circle cx="432" cy="262" r="16" fill="#E9B08C"/>
+      <circle cx="412" cy="238" r="8" fill="#E9B08C"/>
+      <circle cx="432" cy="230" r="8" fill="#E9B08C"/>
+      <circle cx="452" cy="238" r="8" fill="#E9B08C"/>
+
+      <!-- голова -->
+      <ellipse cx="280" cy="250" rx="148" ry="132" fill="url(#fur)"/>
+
+      <!-- уши -->
+      <path d="M 172 178 C 140 100, 152 72, 196 80 C 226 86, 236 116, 222 152 Z" fill="url(#cream)"/>
+      <path d="M 186 156 C 170 116, 178 102, 198 108 C 212 112, 216 128, 210 148 Z" fill="#8A4A2B"/>
+      <path d="M 388 178 C 420 100, 408 72, 364 80 C 334 86, 324 116, 338 152 Z" fill="url(#cream)"/>
+      <path d="M 374 156 C 390 116, 382 102, 362 108 C 348 112, 344 128, 350 148 Z" fill="#8A4A2B"/>
+
+      <!-- щёки -->
+      <ellipse cx="190" cy="282" rx="48" ry="42" fill="url(#cream)"/>
+      <ellipse cx="370" cy="282" rx="48" ry="42" fill="url(#cream)"/>
+
+      <!-- морда -->
+      <ellipse cx="280" cy="308" rx="70" ry="54" fill="url(#cream)"/>
+
+      <!-- брови -->
+      <ellipse cx="222" cy="206" rx="18" ry="11" fill="url(#cream)"/>
+      <ellipse cx="338" cy="206" rx="18" ry="11" fill="url(#cream)"/>
+
+      <!-- глаза -->
+      <circle cx="222" cy="252" r="28" fill="#161616"/>
+      <circle cx="214" cy="242" r="9" fill="#FFFFFF"/>
+      <circle cx="230" cy="262" r="4" fill="#FFFFFF" opacity="0.9"/>
+      <circle cx="338" cy="252" r="28" fill="#161616"/>
+      <circle cx="330" cy="242" r="9" fill="#FFFFFF"/>
+      <circle cx="346" cy="262" r="4" fill="#FFFFFF" opacity="0.9"/>
+
+      <!-- нос и улыбка -->
+      <path d="M 264 292 Q 280 282 296 292 Q 296 306 280 306 Q 264 306 264 292 Z" fill="#3B2317"/>
+      <path d="M 280 306 L 280 316" stroke="#3B2317" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 252 316 Q 268 334 280 316" fill="none" stroke="#3B2317" stroke-width="5" stroke-linecap="round"/>
+      <path d="M 308 316 Q 292 334 280 316" fill="none" stroke="#3B2317" stroke-width="5" stroke-linecap="round"/>
+
+      <!-- блик на голове -->
+      <ellipse cx="232" cy="176" rx="34" ry="18" fill="#FFFFFF" opacity="0.18"/>
+    </g>
+  </svg>
+
+  <svg class="wave" viewBox="0 0 1280 160" preserveAspectRatio="none">
+    <path d="M0 94 C 260 152, 430 22, 720 62 C 980 96, 1120 142, 1280 98 L1280 160 L0 160 Z" fill="#FF9A1F"/>
+    <path d="M0 116 C 300 160, 520 62, 800 98 C 1040 128, 1160 158, 1280 132 L1280 160 L0 160 Z" fill="#FFB84D" opacity="0.75"/>
+  </svg>
+</div>
+</body>
+</html>
