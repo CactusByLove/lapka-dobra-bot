@@ -21,7 +21,15 @@ const PROFANITY: RegExp[] = [
   /(^|[^а-яё])дроч/,
   /(^|[^а-яё])шлюх/,
   /(^|[^а-яё])бляд/,
+  /(^|[^а-яё])сук[аи]/,
+  /(^|[^а-яё])нахуй/,
+  /охуе/,
+  /(^|[^а-яё])долбо[её]б/,
   /\b(fuck|shit|bitch|asshole)\b/i,
+];
+
+const INSULTS: RegExp[] = [
+  /дурак|идиот|дебил|кретин|мразь|тупиц|придурок/i,
 ];
 
 const SPAM: Array<{ re: RegExp; reason: string }> = [
@@ -63,6 +71,10 @@ export function moderateText(fields: string[]): ModerationResult {
 
   if (PROFANITY.some((re) => re.test(normalized))) {
     reasons.push("в тексте есть нецензурная лексика");
+  }
+
+  if (INSULTS.some((re) => re.test(normalized))) {
+    reasons.push("оскорбления и грубость");
   }
 
   for (const rule of SPAM) {

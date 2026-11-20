@@ -1,4 +1,3 @@
-import { DIRECTIONS } from "./levels.js";
 import { button, type VkButton, type VkKeyboard } from "./vk.js";
 
 function keyboard(
@@ -16,8 +15,8 @@ export function menuKeyboard(isAdmin: boolean, isMentor: boolean): VkKeyboard {
   const rows: VkButton[][] = [
     [button("🐾 Регистрация", "reg", undefined, "primary")],
     [button("💡 Предложить идею", "idea"), button("🗂 Банк идей", "bank")],
-    [button("🧭 Направления", "dir"), button("📅 Ближайшие дела", "deals")],
-    [button("🏅 Мои лапки", "profile"), button("🎯 Лапка дня", "daily")],
+    [button("👤 Мой профиль", "profile"), button("🏆 Лучшие волонтёры", "daily")],
+    [button("📅 Ближайшие дела", "deals")],
     [button("📚 Как это работает", "how"), button("🛡 Правила", "safety")],
     [button("✉️ Связаться", "contact")],
   ];
@@ -44,33 +43,10 @@ export function rolesKeyboard(): VkKeyboard {
   );
 }
 
-export function directionsKeyboard(): VkKeyboard {
-  const rows: VkButton[][] = [];
-  for (let i = 0; i < DIRECTIONS.length; i += 2) {
-    const pair = DIRECTIONS.slice(i, i + 2).map((direction) =>
-      button(
-        `${direction.emoji} ${direction.label}`,
-        `reg:dir:${direction.key}`,
-      ),
-    );
-    rows.push(pair);
-  }
-  rows.push([button("⬅️ В меню", "menu")]);
-  return keyboard(rows);
-}
-
 export function confirmKeyboard(): VkKeyboard {
   return keyboard([
     [button("✅ Всё верно", "reg:confirm", undefined, "positive")],
     [button("✏️ Заново", "reg")],
-  ]);
-}
-
-export function consentKeyboard(): VkKeyboard {
-  return keyboard([
-    [button("✅ Родители согласны", "reg:consent:yes", undefined, "positive")],
-    [button("📎 Отправить документ", "reg:consent:doc")],
-    [button("⬅️ В меню", "menu")],
   ]);
 }
 
@@ -169,9 +145,3 @@ export function usersNavKeyboard(page: number, pages: number): VkKeyboard {
   return keyboard(rows);
 }
 
-export function dailyKeyboard(): VkKeyboard {
-  return keyboard([
-    [button("✅ Выполнил(а)", "daily:done", undefined, "positive")],
-    [button("⬅️ В меню", "menu")],
-  ]);
-}

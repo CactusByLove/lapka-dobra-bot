@@ -1,14 +1,14 @@
 import { CHAT_LINK, COMMUNITY_LINK } from "./config.js";
 import {
-  DIRECTIONS,
   IDEA_STATUS_LABEL,
-  PAW_RATES,
   ROLE_EMOJI,
   ROLE_LABEL,
   levelForPaws,
   nextLevel,
 } from "./levels.js";
 import type { IdeaRecord, UserRecord } from "./types.js";
+
+export const PROJECT_NAME = "Лапка Добра";
 
 export const MENU_CAPTION = `🐾 Лапка Добра — волонтёрский конструктор.
 
@@ -18,81 +18,91 @@ export const MENU_CAPTION = `🐾 Лапка Добра — волонтёрск
 
 export const HOW_IT_WORKS = `📚 Как это работает
 
-1. Заполняешь заявку — рассказываешь о себе и выбираешь направление.
-2. Главная лапка или координатор проверяет её.
-3. После одобрения открываются чат команды, расписание и первое дело на 2–3 часа с наставником.
-4. За дела начисляются лапки — это внутренняя валюта проекта. Копишь уровень и бонусы.
-5. Предлагаешь идеи — они проходят проверку и попадают в банк идей.
+1. Заявка. Заполняешь короткую анкету: имя, никнейм, возраст. Без документов и лишних формальностей.
+2. Проверка. Главная лапка или координатор смотрит заявку и одобряет её в течение дня.
+3. Команда. После одобрения открываются чат команды, расписание и первое дело на 2–3 часа с наставником.
+4. Лапки. За каждое дело начисляются лапки — это уровень, а не деньги. Лимит — 100 лапок в неделю.
+5. Рост. Новичок → Стажёр → Участник → Член команды → Наставник → Лидер направления.
+6. Идеи. Предлагаешь идею — автопроверка убирает мат и спам, затем Главная лапка решает, публиковать ли её.
+7. Банк идей. Одобренные идеи видны всей команде: название, автор и номер. Дальше — обсуждение и работа.
 
 Никаких взносов и обязательств: пробуешь столько, сколько хочешь.`;
 
 export const SAFETY_TEXT = `🛡 Правила и безопасность
 
 • Мы не просим деньги, паспорт и банковские данные.
-• Личные контакты и реклама — только через координатора, не в заявках и идеях.
-• Участникам 14–17 лет нужно письменное согласие родителей.
+• Уважение обязательно: без оскорблений, травли и провокаций.
+• В заявках и идеях запрещены мат, реклама, ссылки и телефоны — это проверяет модератор.
+• Участникам 14–17 лет: расскажи родителям, где ты участвуешь.
 • Встречи — в людных местах, о выездах предупреждаем заранее.
-• Если что-то тревожит — напиши координатору сообщества, разберёмся.
+• Не публикуй чужие личные данные и фото без согласия.
+• Если что-то тревожит — напиши Главной лапке: @tima.ugansk, +7 922 772-95-56.
 
 Бережём людей и животных: сначала безопасность, потом результат.`;
 
 export const CONTACT_TEXT = `✉️ Связаться
 
-Все новости, набор и ответы на вопросы — в сообществе проекта.
+Главная лапка проекта:
+• ВКонтакте: @tima.ugansk
+• Телефон: +7 922 772-95-56
 
-💬 ${COMMUNITY_LINK}
+Сообщество: ${COMMUNITY_LINK}
 
-Напиши в сообщения сообщества — ответит Главная лапка или координатор.`;
-
-export const DIRECTIONS_TEXT = `🧭 Направления
-
-${DIRECTIONS.map((d) => `${d.emoji} ${d.label}`).join("\n")}
-
-Направление можно поменять позже — это не навсегда.`;
+Пиши по любым вопросам: заявки, идеи, встречи, сложные ситуации.`;
 
 export function dealsText(): string {
   return `📅 Ближайшие дела
 
 • Знакомство с командой — онлайн, 40 минут
-• Вводный практикум по направлению
+• Вводный практикум по выбранному направлению
 • Первое дело с наставником — 2–3 часа
 • Разбор после дела — 20 минут
 
 Точное расписание приходит в чат команды после одобрения заявки.`;
 }
 
-const DAILY_TASKS = [
-  { title: "Напиши короткий отзыв о деле", text: "Пять предложений: что получилось, что было трудно, что повторишь." },
-  { title: "Помоги новичку", text: "Ответь на один вопрос новичка в чате команды или подскажи, с чего начать." },
-  { title: "Идея на 1 час", text: "Придумай маленькое доброе дело, которое можно сделать за час." },
-  { title: "Собери обратную связь", text: "Спроси у двух человек, что бы они улучшили в проекте." },
-  { title: "Подготовь анонс", text: "Напиши короткий пост о ближайшем деле — 3–5 строк." },
-  { title: "Разбери чужую идею", text: "Возьми идею из банка и напиши, как её усилить." },
-  { title: "Проверь своё направление", text: "Найди одно событие рядом и расскажи о нём команде." },
-];
+export function leaderboardText(users: UserRecord[]): string {
+  if (users.length === 0) {
+    return `🏆 Лучшие волонтёры
 
-export function dailyTask(index: number): { title: string; text: string } {
-  return DAILY_TASKS[index % DAILY_TASKS.length];
-}
+Пока никого нет — стань первым: заполни заявку и получи первые лапки.`;
+  }
+  const medals = ["🥇", "🥈", "🥉"];
+  const lines = users.map((user, index) => {
+    const level = levelForPaws(user.paws);
+    return `${medals[index] ?? "•"} ${user.nickname} — ${user.paws} 🐾 · ${level.name}`;
+  });
+  return `🏆 Лучшие волонтёры проекта
 
-export function pawRatesText(): string {
-  return `🐾 За что дают лапки
+${lines.join("\n")}
 
-${PAW_RATES.map((rate) => `• ${rate.title} — ${rate.paws}`).join("\n")}
-
-Лимит — 100 лапок в неделю. Начисления подтверждает наставник или координатор.`;
+Лапки — это уровень участия. Топ обновляется по итогам дел.`;
 }
 
 export function profileText(user: UserRecord): string {
   const level = levelForPaws(user.paws);
   const next = nextLevel(user.paws);
-  return `${ROLE_EMOJI[user.role]} ${user.nickname}, ты в команде
+  const progress = next
+    ? `До «${next.name}»: ${next.minPaws - user.paws} 🐾`
+    : "Максимальный уровень — ты легенда ✨";
+  const status =
+    user.status === "approved"
+      ? "в команде"
+      : user.status === "pending"
+        ? "заявка на проверке"
+        : user.status === "need_rework"
+          ? "нужна доработка"
+          : "заявка отклонена";
+  return `${ROLE_EMOJI[user.role]} Мой профиль
 
-${ROLE_LABEL[user.role]} · ${user.direction}
-Уровень: ${level.name}
-Лапки: ${user.paws}${next ? ` (до «${next.name}» — ${next.minPaws - user.paws})` : " — максимум"}
-Серия: ${user.streak} дн. подряд
-Статус заявки: ${user.status === "approved" ? "одобрена" : "на проверке"}`;
+👤 ${user.nickname}
+${ROLE_LABEL[user.role]} · ${status}
+🏅 ${level.name}
+🐾 Лапки: ${user.paws}
+${progress}
+🔥 Серия: ${user.streak} дн. подряд
+🎂 ${user.age} лет
+📅 В проекте с ${user.createdAt.slice(0, 10)}`;
 }
 
 export function adminUserCard(user: UserRecord): string {
@@ -108,7 +118,6 @@ VK: ${user.username ? `vk.com/${user.username}` : "—"}
 ID: ${user.tgId}
 Роль: ${ROLE_LABEL[user.role]}
 Статус: ${user.status}
-Направление: ${user.direction}
 Возраст: ${user.age}
 Лапки: ${user.paws} · серия: ${user.streak}
 Блокировка: ${user.blocked ? "да" : "нет"}
@@ -116,19 +125,11 @@ ID: ${user.tgId}
 }
 
 export function applicationText(user: UserRecord): string {
-  const consent =
-    user.age <= 17
-      ? user.parentConsent && user.parentConsentFileId
-        ? "документ получен ✅"
-        : "НЕТ ❌"
-      : "не требуется";
   return `🐾 Новая заявка в команду
 
 👤 ${user.nickname}${user.username ? ` (vk.com/${user.username})` : ""}
 🏷 Имя: ${user.name}
 🎂 ${user.age} лет · ${ROLE_LABEL[user.role]}
-🧭 ${user.direction}
-🛡 Согласие родителей: ${consent}
 🆔 ${user.tgId}`;
 }
 
@@ -138,7 +139,7 @@ export function approvalText(user: UserRecord, paws: number): string {
 
 Добро пожаловать в команду. Для входа и первого дела начислено +${paws} 🐾.${chat}
 
-Посмотри «Как это работает» и «Ближайшие дела» — и выбирай, с чего начнём.`;
+Открой «Мой профиль» и «Как это работает» — и выбирай, с чего начнём.`;
 }
 
 export function ideaCard(idea: IdeaRecord): string {
@@ -151,4 +152,8 @@ export function ideaCard(idea: IdeaRecord): string {
 Для кого: ${idea.audience}
 Зачем: ${idea.goal}
 Что нужно: ${idea.needs}`;
+}
+
+export function bankLine(index: number, idea: IdeaRecord): string {
+  return `${index}. ${idea.title} — ${idea.authorName} · «${PROJECT_NAME}»`;
 }

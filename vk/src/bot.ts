@@ -1,42 +1,36 @@
 import { isAdminId } from "./config.js";
-import { DIRECTIONS, ROLE_LABEL } from "./levels.js";
+import { ROLE_LABEL } from "./levels.js";
 import { moderationLine, moderateText } from "./moderation.js";
 import { handleAdminEvent } from "./admin.js";
 import { notifyCreator, notifyStaff } from "./notify.js";
 import { sessionsStore, type RegBase, type Session } from "./state.js";
 import {
-  addPawRequest,
+  allUsers,
   createIdea,
   getUser,
   listPublishedIdeas,
-  markDailyDone,
-  touchStreak,
   upsertUser,
 } from "./storage.js";
 import {
   CONTACT_TEXT,
-  DIRECTIONS_TEXT,
   HOW_IT_WORKS,
   MENU_CAPTION,
   SAFETY_TEXT,
   applicationText,
-  dailyTask,
+  bankLine,
   dealsText,
   ideaCard,
+  leaderboardText,
   profileText,
 } from "./texts.js";
 import {
   backKeyboard,
   confirmKeyboard,
-  consentKeyboard,
-  dailyKeyboard,
-  directionsKeyboard,
   menuKeyboard,
   rolesKeyboard,
 } from "./keyboards.js";
 import {
   answerEvent,
-  deletePrevious,
   replaceScreen,
   send,
   sendScreen,
@@ -92,22 +86,13 @@ async function showInfo(
   await sendScreen(peerId, screen, text, backKeyboard(admin));
 }
 
-function regSummary(base: RegBase & { direction: string }): string {
-  const minor =
-    base.age <= 17
-      ? `\n🛡 Согласие родителей: ${
-          base.parentConsent && base.parentConsentFileId
-            ? "документ получен ✅"
-            : "не получено ❌"
-        }`
-      : "";
+function regSummary(base: RegBase): string {
   return `Проверь заявку:
 
 👤 ${base.nickname}
 🏷 Имя: ${base.name}
 🎂 Возраст: ${base.age}
-🧩 Роль: ${ROLE_LABEL[base.role] ?? base.role}
-🧭 Направление: ${base.direction}${minor}`;
+🧩 Роль: ${ROLE_LABEL[base.role] ?? base.role}`;
 }
 
 async function startRegistration(
@@ -132,27 +117,28 @@ async function startRegistration(
     );
     return;
   }
-  await replaceScreen(peerId, "Давай познакомимся 🐾\n\nКто ты?", {
-    keyboard: rolesKeyboard(),
-  });
+  await sendScreen(
+    peerId,
+    "registration",
+    "Давай познакомимся 🐾\n\nКто ты?",
+    rolesKeyboard(),
+  );
 }
 
 async function showBank(peerId: number, userId: number): Promise<void> {
-  const ideas = listPublishedIdeas().slice(0, 5);
-  await deletePrevious(peerId);
+  const ideas = listPublishedIdeas().slice(0, 10);
   if (ideas.length === 0) {
     await replaceScreen(peerId, "В банке пока пусто — стань первым автором 💡", {
       keyboard: backKeyboard(staffFlags(userId).admin),
     });
     return;
   }
-  for (const idea of ideas) {
-    await send(peerId, ideaCard(idea));
-  }
-  await replaceScreen(
+  const lines = ideas.map((idea, index) => bankLine(index + 1, idea));
+  await sendScreen(
     peerId,
-    `🗂 Банк идей: ${ideas.length} из ${listPublishedIdeas().length}.\nИдеи прошли автопроверку и модерацию Главной лапки.`,
-    { keyboard: backKeyboard(staffFlags(userId).admin) },
+    "bank",
+    `🗂 Банк идей\n\n${lines.join("\n")}\n\nВсего идей: ${listPublishedIdeas().length}.`,
+    backKeyboard(staffFlags(userId).admin),
   );
 }
 
@@ -174,80 +160,26 @@ async function showProfile(peerId: number, userId: number): Promise<void> {
   );
 }
 
-async function showDaily(peerId: number, userId: number): Promise<void> {
-  const user = getUser(userId);
-  if (!user) {
-    await replaceScreen(peerId, "«Лапка дня» — для участников команды. Заполни заявку.", {
-      keyboard: backKeyboard(staffFlags(userId).admin),
-    });
-    return;
-  }
-  const task = dailyTask(Math.floor(Date.now() / 86_400_000));
-  await replaceScreen(
+async function showLeaders(peerId: number, userId: number): Promise<void> {
+  const top = allUsers()
+    .filter((user) => user.status === "approved")
+    .sort((a, b) => b.paws - a.paws)
+    .slice(0, 3);
+  await sendScreen(
     peerId,
-    `🎯 Лапка дня\n\n${task.title}\n${task.text}\n\nОтметь выполнение — наставник или координатор подтвердит, и начислятся 3 лапки.`,
-    { keyboard: dailyKeyboard() },
-  );
-}
-
-async function completeDaily(peerId: number, userId: number): Promise<void> {
-  const user = getUser(userId);
-  if (!user) {
-    await send(peerId, "Сначала зарегистрируйся в команду.");
-    return;
-  }
-  if (!markDailyDone(user.tgId)) {
-    await send(peerId, "Сегодня уже отмечено — возвращайся завтра 🐾");
-    return;
-  }
-  touchStreak(user.tgId);
-  const task = dailyTask(Math.floor(Date.now() / 86_400_000));
-  const request = addPawRequest(
-    user.tgId,
-    user.nickname,
-    3,
-    `Лапка дня: ${task.title}`,
-  );
-  await replaceScreen(
-    peerId,
-    "✅ Отмечено! 3 лапки ушли на проверку наставнику или координатору.",
-    { keyboard: backKeyboard(staffFlags(userId).admin) },
-  );
-  await notifyStaff(
-    `🐾 Лапка дня\n${user.nickname} отметил(а): ${task.title}\n+3 лапки на проверку.`,
-    {
-      one_time: true,
-      inline: true,
-      buttons: [
-        [
-          {
-            action: {
-              type: "callback",
-              label: "✅ Подтвердить",
-              payload: JSON.stringify({ c: "pawreq:yes", id: request.id }),
-            },
-            color: "positive",
-          },
-          {
-            action: {
-              type: "callback",
-              label: "❌ Отклонить",
-              payload: JSON.stringify({ c: "pawreq:no", id: request.id }),
-            },
-            color: "negative",
-          },
-        ],
-      ],
-    },
+    "profile",
+    leaderboardText(top),
+    backKeyboard(staffFlags(userId).admin),
   );
 }
 
 async function startIdea(peerId: number, userId: number): Promise<void> {
   sessionsStore.set(userId, { kind: "idea:title" });
-  await replaceScreen(
+  await sendScreen(
     peerId,
+    "idea",
     "💡 Предложить идею\n\nШаг 1 из 5. Как назовём идею? Коротко, до 100 символов.",
-    { keyboard: backKeyboard(staffFlags(userId).admin) },
+    backKeyboard(staffFlags(userId).admin),
   );
 }
 
@@ -377,45 +309,6 @@ export async function handleCallbackEvent(event: AppEvent): Promise<void> {
       });
       return;
     }
-    case "reg:consent:yes":
-    case "reg:consent:doc": {
-      const session = sessionsStore.get(userId);
-      if (session?.kind !== "reg:consent") {
-        await replaceScreen(peerId, "Начни регистрацию заново.", {
-          keyboard: backKeyboard(false),
-        });
-        return;
-      }
-      sessionsStore.set(userId, {
-        kind: "reg:consentDoc",
-        role: session.role,
-        name: session.name,
-        nickname: session.nickname,
-        age: session.age,
-        parentConsent: true,
-      });
-      await replaceScreen(
-        peerId,
-        "Прикрепи фото или файл подписанного согласия родителей. Без документа заявка не станет активной.",
-        { keyboard: backKeyboard(false) },
-      );
-      return;
-    }
-    case "reg:connect:doc": {
-      const session = sessionsStore.get(userId);
-      if (session?.kind !== "reg:consentDoc") {
-        await replaceScreen(peerId, "Начни регистрацию заново.", {
-          keyboard: backKeyboard(false),
-        });
-        return;
-      }
-      await replaceScreen(
-        peerId,
-        "Прикрепи фото или файл документа от родителей — подойдёт подписанное согласие или скрин электронной формы.",
-        { keyboard: backKeyboard(false) },
-      );
-      return;
-    }
     case "reg:confirm": {
       const session = sessionsStore.get(userId);
       if (session?.kind !== "reg:confirm") {
@@ -425,18 +318,6 @@ export async function handleCallbackEvent(event: AppEvent): Promise<void> {
         return;
       }
       const draft = session.draft;
-      if (
-        draft.age >= 14 &&
-        draft.age <= 17 &&
-        !(draft.parentConsent && draft.parentConsentFileId)
-      ) {
-        await replaceScreen(
-          peerId,
-          "Для 14–17 лет нужен документ от родителей. Прикрепи файл ещё раз.",
-          { keyboard: consentKeyboard() },
-        );
-        return;
-      }
       const user: UserRecord = {
         tgId: userId,
         username: null,
@@ -513,9 +394,6 @@ export async function handleCallbackEvent(event: AppEvent): Promise<void> {
     case "bank":
       await showBank(peerId, userId);
       return;
-    case "dir":
-      await showInfo(peerId, userId, "info", DIRECTIONS_TEXT);
-      return;
     case "deals":
       await showInfo(peerId, userId, "info", dealsText());
       return;
@@ -523,10 +401,7 @@ export async function handleCallbackEvent(event: AppEvent): Promise<void> {
       await showProfile(peerId, userId);
       return;
     case "daily":
-      await showDaily(peerId, userId);
-      return;
-    case "daily:done":
-      await completeDaily(peerId, userId);
+      await showLeaders(peerId, userId);
       return;
     case "how":
       await showInfo(peerId, userId, "info", HOW_IT_WORKS);
@@ -555,6 +430,15 @@ async function regTextStep(
       });
       return true;
     }
+    const nameCheck = moderateText([text]);
+    if (!nameCheck.ok) {
+      await replaceScreen(
+        peerId,
+        `⚠️ Имя не прошло проверку:\n• ${nameCheck.reasons.join("\n• ")}\n\nНапиши имя ещё раз.`,
+        { keyboard: backKeyboard(false) },
+      );
+      return true;
+    }
     sessionsStore.set(userId, {
       kind: "reg:nickname",
       role: session.role,
@@ -574,6 +458,15 @@ async function regTextStep(
       await replaceScreen(
         peerId,
         "Никнейм — 2–32 символа: буквы, цифры, пробел, _ или дефис. Попробуй ещё раз.",
+        { keyboard: backKeyboard(false) },
+      );
+      return true;
+    }
+    const nickCheck = moderateText([nickname]);
+    if (!nickCheck.ok) {
+      await replaceScreen(
+        peerId,
+        `⚠️ Никнейм не прошёл проверку:\n• ${nickCheck.reasons.join("\n• ")}\n\nПопробуй другой.`,
         { keyboard: backKeyboard(false) },
       );
       return true;
@@ -600,34 +493,18 @@ async function regTextStep(
       });
       return true;
     }
-    if (age <= 17) {
-      sessionsStore.set(userId, {
-        kind: "reg:consent",
-        role: session.role,
-        name: session.name,
-        nickname: session.nickname,
-        age,
-      });
-      await replaceScreen(
-        peerId,
-        "Тебе 14–17 — нужно письменное согласие родителей.\n\nЕсли родители уже согласны, нажми «Родители согласны» и прикрепи документ.",
-        { keyboard: consentKeyboard() },
-      );
-      return true;
-    }
-    sessionsStore.set(userId, {
-      kind: "reg:direction",
-      base: {
-        role: session.role,
-        name: session.name,
-        nickname: session.nickname,
-        age,
-        parentConsent: false,
-        parentConsentFileId: null,
-      },
-    });
-    await replaceScreen(peerId, "Что тебе интереснее всего?", {
-      keyboard: directionsKeyboard(),
+    const draft = {
+      role: session.role,
+      name: session.name,
+      nickname: session.nickname,
+      age,
+      parentConsent: false,
+      parentConsentFileId: null,
+      direction: "—",
+    };
+    sessionsStore.set(userId, { kind: "reg:confirm", draft });
+    await replaceScreen(peerId, regSummary(draft), {
+      keyboard: confirmKeyboard(),
     });
     return true;
   }
@@ -738,52 +615,9 @@ export async function handleMessageEvent(message: AppMessage): Promise<void> {
   const text = message.text.trim();
   const session = sessionsStore.get(userId);
 
-  if (session?.kind === "reg:consentDoc") {
-    const attachment = message.attachments[0];
-    if (!attachment) {
-      await send(peerId, "Не вижу файла. Прикрепи фото или документ согласия.");
-      return;
-    }
-    sessionsStore.set(userId, {
-      kind: "reg:direction",
-      base: {
-        role: session.role,
-        name: session.name,
-        nickname: session.nickname,
-        age: session.age,
-        parentConsent: true,
-        parentConsentFileId: attachment,
-      },
-    });
-    await replaceScreen(peerId, "Документ получен ✅\n\nЧто тебе интереснее всего?", {
-      keyboard: directionsKeyboard(),
-    });
-    return;
-  }
-
   if (session && text) {
     if (await regTextStep(peerId, userId, session, text)) return;
     if (await ideaTextStep(peerId, userId, session, text)) return;
-  }
-
-  if (session?.kind === "reg:direction" && message.payload?.c) {
-    // направление выбирается кнопкой, здесь ничего не делаем
-    return;
-  }
-
-  if (session?.kind === "reg:direction") {
-    const direction = DIRECTIONS.find((item) => text.includes(item.label));
-    if (direction) {
-      const draft = {
-        ...session.base,
-        direction: `${direction.emoji} ${direction.label}`,
-      };
-      sessionsStore.set(userId, { kind: "reg:confirm", draft });
-      await replaceScreen(peerId, regSummary(draft), {
-        keyboard: confirmKeyboard(),
-      });
-      return;
-    }
   }
 
   const command = text.toLowerCase();
@@ -801,15 +635,11 @@ export async function handleMessageEvent(message: AppMessage): Promise<void> {
   }
 
   if (!user) {
-    await send(peerId, "Я рядом 🐾 Открой меню — там заявка в команду, идеи, лапки и ближайшие дела.", {
-      keyboard: menuKeyboard(staffFlags(userId).admin, staffFlags(userId).mentor),
-    });
+    await showMenu(peerId, userId);
     return;
   }
 
-  await send(peerId, "Не понял шаг. Открой меню и начни заново.", {
-    keyboard: menuKeyboard(staffFlags(userId).admin, staffFlags(userId).mentor),
-  });
+  await showMenu(peerId, userId);
 }
 
 export { attachmentString };

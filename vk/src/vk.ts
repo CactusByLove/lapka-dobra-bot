@@ -45,40 +45,62 @@ async function uploadMessagePhoto(
   peerId: number,
   file: string,
 ): Promise<string | undefined> {
-  try {
-    const upload = await api.photos.getMessagesUploadServer({
-      peer_id: peerId,
-    });
-    const buffer = await readFile(file);
-    const form = new FormData();
-    form.append("photo", new Blob([buffer], { type: "image/png" }), "banner.png");
-    const response = await fetch(upload.upload_url, {
-      method: "POST",
-      body: form,
-    });
-    const data = (await response.json()) as {
-      server?: number;
-      photo?: string;
-      hash?: string;
-    };
-    if (!data.server || !data.photo || !data.hash) return undefined;
-    const saved = await api.photos.saveMessagesPhoto({
-      server: data.server,
-      photo: data.photo,
-      hash: data.hash,
-    });
-    const photo = saved[0] as unknown as {
-      owner_id?: number;
-      ownerId?: number;
-      id?: number;
-    };
-    const owner = photo.owner_id ?? photo.ownerId;
-    if (!owner || !photo.id) return undefined;
-    return `photo${owner}_${photo.id}`;
-  } catch (error) {
-    console.error("photo upload:", error);
-    return undefined;
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    try {
+      const upload = await api.photos.getMessagesUploadServer({
+        peer_id: peerId,
+      });
+      const buffer = await readFile(file);
+      const form = new FormData();
+      form.append(
+        "photo",
+        new Blob([buffer], { type: "image/png" }),
+        "banner.png",
+      );
+      const response = await fetch(upload.upload_url, {
+        method: "POST",
+        body: form,
+      });
+      const text = await response.text();
+      let data: { server?: number; photo?: string; hash?: string };
+      try {
+        data = JSON.parse(text) as {
+          server?: number;
+          photo?: string;
+          hash?: string;
+        };
+      } catch {
+        console.warn("photo upload: VK вернул не-JSON, попытка", attempt);
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        continue;
+      }
+      if (!data.server || !data.photo || !data.hash) {
+        await new Promise((resolve) => setTimeout(resolve, 700));
+        continue;
+      }
+      const saved = await api.photos.saveMessagesPhoto({
+        server: data.server,
+        photo: data.photo,
+        hash: data.hash,
+      });
+      const photo = saved[0] as unknown as {
+        owner_id?: number;
+        ownerId?: number;
+        id?: number;
+      };
+      const owner = photo.owner_id ?? photo.ownerId;
+      if (!owner || !photo.id) return undefined;
+      return `photo${owner}_${photo.id}`;
+    } catch (error) {
+      console.warn(
+        "photo upload:",
+        attempt,
+        String(error).slice(0, 120),
+      );
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    }
   }
+  return undefined;
 }
 
 export async function bannerAttachment(

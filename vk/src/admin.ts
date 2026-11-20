@@ -16,6 +16,7 @@ import {
   usersNavKeyboard,
   adminKeyboard,
   mentorKeyboard,
+  menuKeyboard,
 } from "./keyboards.js";
 import {
   allUsers,
@@ -214,7 +215,7 @@ export async function handleAdminEvent(event: AdminEvent): Promise<boolean> {
       updateUser(target.tgId, { status: "approved" });
       const award = awardPaws(target.tgId, 10, "Входной практикум");
       await send(target.tgId, approvalText(target, award.granted), {
-        keyboard: adminKeyboard(),
+        keyboard: menuKeyboard(false, target.role === "mentor"),
       }).catch(() => undefined);
       await replaceScreen(
         peerId,
@@ -260,7 +261,7 @@ export async function handleAdminEvent(event: AdminEvent): Promise<boolean> {
     setIdeaStatus(ideaId, status);
     const label = IDEA_STATUS_LABEL[status] ?? status;
     await send(idea.authorTgId, `💡 Твоя идея «${idea.title}»: ${label}.`, {
-      keyboard: adminKeyboard(),
+      keyboard: menuKeyboard(false, false),
     }).catch(() => undefined);
     if (status === "published") {
       await notifyVolunteers(ideaCard(idea));
